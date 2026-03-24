@@ -1,6 +1,19 @@
+'use client'
+
 import { Home, BookOpen, Award, FlaskConical, Settings, LogOut, Flame, Trophy, BarChart2 } from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
+import { useRouter } from "next/navigation";
 
 export default function Sidebar() {
+  const supabase = createClient();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  };
+
   return (
     <aside className="w-56 lg:w-64 bg-background flex flex-col justify-between py-6 px-3 lg:px-4 shrink-0">
       <div>
@@ -33,13 +46,29 @@ export default function Sidebar() {
 
       <div className="flex flex-col gap-1">
         <NavItem icon={<Settings size={18} />} label="Configuración" />
-        <NavItem icon={<LogOut size={18} />} label="Cerrar Sesión" />
+        <NavItem 
+          icon={<LogOut size={18} />} 
+          label="Cerrar Sesión" 
+          onClick={handleLogout}
+        />
       </div>
     </aside>
   );
 }
 
-function NavItem({ icon, label, active = false }: { icon: React.ReactNode, label: string, active?: boolean }) {
+function NavItem({ icon, label, active = false, onClick }: { icon: React.ReactNode, label: string, active?: boolean, onClick?: () => void }) {
+  if (onClick) {
+    return (
+      <button 
+        onClick={onClick}
+        className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors text-foreground hover:bg-card/50`}
+      >
+        <span className="text-foreground/70">{icon}</span>
+        <span className="text-sm font-semibold">{label}</span>
+      </button>
+    );
+  }
+
   return (
     <a href="#" className={`flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${active ? 'bg-card border-l-4 border-primary text-primary' : 'text-foreground hover:bg-card/50'}`}>
       <span className={active ? 'text-primary' : 'text-foreground/70'}>{icon}</span>
