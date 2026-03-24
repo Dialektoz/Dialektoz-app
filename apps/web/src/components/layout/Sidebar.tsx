@@ -5,7 +5,7 @@ export default function Sidebar() {
     <aside className="w-56 lg:w-64 bg-background flex flex-col justify-between py-6 px-3 lg:px-4 shrink-0">
       <div>
         <div className="mb-12 px-4 pt-2 flex items-center justify-start">
-           <img src="/logo vector.svg" alt="Dialektoz Logo" className="w-44 h-auto object-contain -ml-2" />
+           <img src="/logo-vector.svg" alt="Dialektoz Logo" className="w-44 h-auto object-contain -ml-2" />
         </div>
         
         {/* User profile brief */}
