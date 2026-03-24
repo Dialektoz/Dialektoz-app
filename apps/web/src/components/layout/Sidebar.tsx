@@ -2,7 +2,7 @@ import { Home, BookOpen, Award, FlaskConical, Settings, LogOut, Flame, Trophy, B
 
 export default function Sidebar() {
   return (
-    <aside className="w-64 bg-background flex flex-col justify-between py-6 px-4 shrink-0">
+    <aside className="w-56 lg:w-64 bg-background flex flex-col justify-between py-6 px-3 lg:px-4 shrink-0">
       <div>
         <div className="mb-12 px-4 pt-2 flex items-center justify-start">
            <img src="/logo vector.svg" alt="Dialektoz Logo" className="w-44 h-auto object-contain -ml-2" />

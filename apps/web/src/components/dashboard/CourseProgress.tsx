@@ -2,7 +2,7 @@ import { Play, ArrowRight, BookOpen, Clock, Users } from "lucide-react";
 
 export default function CourseProgress() {
   return (
-    <div className="flex flex-col gap-10 max-w-[850px] mx-auto py-2">
+    <div className="flex flex-col gap-6 lg:gap-10 max-w-[900px] mx-auto py-2 px-1">
       {/* Top Header */}
       <header className="flex justify-center mb-4">
         <nav className="flex gap-10 border-b border-border/60 pb-3 w-full justify-center px-4">

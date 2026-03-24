@@ -2,7 +2,7 @@ import { Flame, Trophy, Calendar, Award, Medal } from "lucide-react";
 
 export default function RightPanel() {
   return (
-    <aside className="w-[340px] bg-background flex flex-col py-6 px-6 overflow-y-auto shrink-0 gap-6 custom-scrollbar">
+    <aside className="w-[300px] lg:w-[340px] bg-background flex flex-col py-6 px-4 lg:px-6 overflow-y-auto shrink-0 gap-6 custom-scrollbar border-l border-border/10">
       
       {/* Profile summary */}
       <div className="bg-card/50 rounded-xl p-5 border border-primary/20 flex flex-col items-center relative overflow-hidden">
