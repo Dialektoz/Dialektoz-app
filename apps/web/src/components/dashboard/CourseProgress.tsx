@@ -3,15 +3,7 @@ import { Play, ArrowRight, BookOpen, Clock, Users } from "lucide-react";
 export default function CourseProgress() {
   return (
     <div className="flex flex-col gap-6 lg:gap-10 max-w-[900px] mx-auto py-2 px-1">
-      {/* Top Header */}
-      <header className="flex justify-center mb-4">
-        <nav className="flex gap-10 border-b border-border/60 pb-3 w-full justify-center px-4">
-          <a href="#" className="text-primary font-bold border-b-2 border-primary pb-3 -mb-[14px]">Inicio</a>
-          <a href="#" className="text-foreground/70 font-semibold hover:text-foreground transition-colors pb-3">Aprender</a>
-          <a href="#" className="text-foreground/70 font-semibold hover:text-foreground transition-colors pb-3">Certificación</a>
-          <a href="#" className="text-foreground/70 font-semibold hover:text-foreground transition-colors pb-3">Laboratorio</a>
-        </nav>
-      </header>
+      {/* Top Header removed and replaced by TopNavigation */}
 
       {/* Current Course Card */}
       <section className="bg-card rounded-2xl p-8 border border-border relative overflow-hidden flex flex-col justify-between min-h-[240px] shadow-sm">
