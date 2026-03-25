@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
-import { LogIn, Mail, Lock, Loader2, Sparkles } from 'lucide-react'
+import { LogIn, Mail, Lock, Loader2 } from 'lucide-react'
+import { Logo } from '@/components/ui/Logo'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -44,7 +45,7 @@ export default function LoginPage() {
           
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 mb-4 shadow-inner">
-              <Sparkles className="text-primary" size={32} />
+              <Logo className="text-primary" size={36} />
             </div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-foreground/50 bg-clip-text text-transparent mb-2">Bienvenido</h1>
             <p className="text-foreground/50 text-sm">Ingresa a tu portal de aprendizaje Dialektoz</p>
