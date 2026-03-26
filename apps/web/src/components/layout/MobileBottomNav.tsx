@@ -9,7 +9,7 @@ export default function MobileBottomNav() {
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border z-50 flex justify-around items-center h-16 px-2 pb-safe">
-      <NavItem href="/" icon={<Home size={22} />} label="Inicio" active={pathname === '/'} />
+      <NavItem href="/dashboard" icon={<Home size={22} />} label="Inicio" active={pathname === '/dashboard'} />
       <NavItem href="/learn" icon={<BookOpen size={22} />} label="Aprender" active={pathname === '/learn'} />
       <NavItem href="/progress" icon={<BarChart2 size={22} />} label="Progreso" active={pathname === '/progress'} />
       <NavItem href="/streak" icon={<Flame size={22} />} label="Racha" active={pathname === '/streak'} />

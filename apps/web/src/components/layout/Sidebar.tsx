@@ -67,7 +67,7 @@ export default function Sidebar() {
         </div>
 
         <nav className="flex flex-col gap-1">
-          <NavItem href="/" icon={<Home size={18} />} label="Inicio" active={pathname === '/'} collapsed={isCollapsed} />
+          <NavItem href="/dashboard" icon={<Home size={18} />} label="Inicio" active={pathname === '/dashboard'} collapsed={isCollapsed} />
           <NavItem href="/progress" icon={<BarChart2 size={18} />} label="Mi Progreso" active={pathname === '/progress'} collapsed={isCollapsed} />
           <NavItem href="/streak" icon={<Flame size={18} />} label="Racha Diaria" active={pathname === '/streak'} collapsed={isCollapsed} />
           <NavItem href="/leaderboard" icon={<Award size={18} />} label="Clasificación" active={pathname === '/leaderboard'} collapsed={isCollapsed} />
