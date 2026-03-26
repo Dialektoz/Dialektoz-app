@@ -69,5 +69,6 @@ La arquitectura de la base de datos reflejará la progresión holística:
 
 *   **Code and Documentation:** All code (variables, functions, components), commits, comments, and internal documentation **MUST be written in English**.
 *   **User-Facing Content:** The default language for the user interface texts, instructions, and learning materials will be **Spanish** by default (since it is an English learning app for Spanish speakers).
+*   **Responsive Design (Mobile First):** All web UI components **MUST** be fully responsive. Always start styling for mobile (`w-full`, `flex-col`, `p-4`) and use Tailwind breakpoints (`sm:`, `md:`, `lg:`, `xl:`) to adapt the layout for larger screens.
 
-*NOTA PARA EL AGENTE DE IA: Durante el desarrollo de Dialektoz, DEBES consultar e internalizar esta skill. Garantiza que las decisiones de código mantengan consistencia tecnológica, promoviendo el aislamiento de UI y lógica en caso de ser necesario dada la naturaleza dual (Web/Mobile) del stack. Cumple siempre estrictamente con la regla de código/comentarios en inglés y contenido de la app en español.*
+*NOTA PARA EL AGENTE DE IA: Durante el desarrollo de Dialektoz, DEBES consultar e internalizar esta skill. Garantiza que las decisiones de código mantengan consistencia tecnológica, promoviendo el aislamiento de UI y lógica en caso de ser necesario dada la naturaleza dual (Web/Mobile) del stack. Cumple siempre estrictamente con la regla de código/comentarios en inglés, contenido de la app en español, y **diseño responsivo por defecto**.*

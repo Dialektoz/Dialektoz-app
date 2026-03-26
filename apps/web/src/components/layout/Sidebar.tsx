@@ -22,7 +22,7 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className={`bg-background flex flex-col justify-between py-6 shrink-0 border-r border-border transition-all duration-300 ease-in-out ${isCollapsed ? 'w-20 px-2' : 'w-56 lg:w-64 px-3 lg:px-4'}`}>
+    <aside className={`bg-background hidden md:flex flex-col justify-between py-6 shrink-0 border-r border-border transition-all duration-300 ease-in-out ${isCollapsed ? 'w-20 px-2' : 'w-56 lg:w-64 px-3 lg:px-4'}`}>
       <div>
         <div className={`mb-12 flex items-center relative w-full ${isCollapsed ? 'justify-center px-0' : 'justify-between px-3'}`}>
           {!isCollapsed ? (
