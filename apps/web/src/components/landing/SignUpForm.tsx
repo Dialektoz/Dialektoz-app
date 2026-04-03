@@ -18,27 +18,45 @@ export default function SignUpForm() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres.')
+      return
+    }
+
     setIsLoading(true)
     setError(null)
 
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      }
     })
 
     if (error) {
-      setError(error.message)
+      if (error.message.includes('already registered')) {
+        setError('Este correo ya está registrado. Intenta iniciar sesión.')
+      } else if (error.message.includes('Password')) {
+        setError('La contraseña es demasiado débil.')
+      } else {
+        setError(error.message)
+      }
       setIsLoading(false)
     } else if (data.session) {
-      // Session exists, user is logged in automatically
       router.refresh()
-      router.push('/dashboard')
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('onboarding_completed')
+        .eq('id', data.session.user.id)
+        .single()
+        
+      if (profile && !profile.onboarding_completed) {
+        router.push('/onboarding')
+      } else {
+        router.push('/dashboard')
+      }
     } else {
-      // No session means Supabase is waiting for email confirmation
-      setError('⚡ Registro exitoso pero debes confirmar tu correo. Revisa tu bandeja de entrada o deshabilita la confirmación de correo en Supabase.')
+      setError('Ocurrió un error inesperado. Intenta de nuevo.')
       setIsLoading(false)
     }
   }
@@ -67,7 +85,7 @@ export default function SignUpForm() {
           type="button"
           onClick={() => handleSocialLogin('google')}
           disabled={isLoading}
-          className="flex items-center justify-center p-3 border border-border/60 hover:border-primary/50 hover:bg-white/5 rounded-xl transition-all active:scale-95"
+          className="flex items-center justify-center p-3 border border-border/60 hover:border-primary/50 hover:bg-white/5 rounded-xl transition-all active:scale-95 cursor-pointer"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -80,7 +98,7 @@ export default function SignUpForm() {
           type="button"
           onClick={() => handleSocialLogin('facebook')}
           disabled={isLoading}
-          className="flex items-center justify-center p-3 border border-border/60 hover:border-[#1877F2]/50 hover:bg-[#1877F2]/10 rounded-xl transition-all active:scale-95"
+          className="flex items-center justify-center p-3 border border-border/60 hover:border-[#1877F2]/50 hover:bg-[#1877F2]/10 rounded-xl transition-all active:scale-95 cursor-pointer"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#1877F2">
             <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
@@ -90,7 +108,7 @@ export default function SignUpForm() {
           type="button"
           onClick={() => handleSocialLogin('apple')}
           disabled={isLoading}
-          className="flex items-center justify-center p-3 border border-border/60 hover:border-white/50 hover:bg-white/10 rounded-xl transition-all active:scale-95"
+          className="flex items-center justify-center p-3 border border-border/60 hover:border-white/50 hover:bg-white/10 rounded-xl transition-all active:scale-95 cursor-pointer"
         >
           <svg className="w-[22px] h-[22px] fill-foreground" viewBox="0 0 24 24">
             <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.62-1.453 3.608-2.91 1.15-1.685 1.626-3.321 1.654-3.414-.037-.014-3.203-1.226-3.235-4.908-.027-3.085 2.518-4.576 2.636-4.653-1.432-2.09-3.663-2.37-4.48-2.417h-.012zM15.589 4.312c.843-1.018 1.41-2.435 1.256-3.842-1.186.048-2.671.785-3.546 1.815-.776.904-1.457 2.359-1.267 3.743 1.328.102 2.712-.686 3.557-1.716z"/>
@@ -146,7 +164,7 @@ export default function SignUpForm() {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-primary hover:bg-secondary text-black font-extrabold py-3.5 rounded-xl transition-all shadow-lg shadow-primary/20 mt-4 flex items-center justify-center gap-2"
+          className="w-full bg-primary hover:bg-secondary text-black font-extrabold py-3.5 rounded-xl transition-all shadow-lg shadow-primary/20 mt-4 flex items-center justify-center gap-2 cursor-pointer"
         >
           {isLoading ? <Loader2 className="animate-spin" size={20} /> : 'Empieza a Aprender Gratis'}
         </button>

@@ -61,24 +61,32 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Progressive Profiling Check
-  if (
-    user && 
-    !request.nextUrl.pathname.startsWith('/onboarding') && 
-    !request.nextUrl.pathname.startsWith('/auth') &&
-    request.nextUrl.pathname !== '/'
-  ) {
-    // Check if user completed onboarding
+  // Progressive Profiling Check & RBAC
+  if (user && !request.nextUrl.pathname.startsWith('/auth') && request.nextUrl.pathname !== '/') {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('onboarding_completed')
+      .select('onboarding_completed, role')
       .eq('id', user.id)
       .single()
 
-    if (profile && !profile.onboarding_completed) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/onboarding'
-      return NextResponse.redirect(url)
+    if (profile) {
+      // 1. Check if user needs to complete onboarding
+      if (!profile.onboarding_completed && !request.nextUrl.pathname.startsWith('/onboarding')) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/onboarding'
+        return NextResponse.redirect(url)
+      }
+
+      // 2. Role-Based Access Control (Admin Routes Protection)
+      if (request.nextUrl.pathname.startsWith('/admin') && profile.role !== 'admin') {
+        const url = request.nextUrl.clone()
+        url.pathname = '/dashboard'
+        return NextResponse.redirect(url)
+      }
+
+      // Forward the user's role to app routes via headers
+      request.headers.set('x-user-role', profile.role)
+      supabaseResponse.headers.set('x-user-role', profile.role)
     }
   }
 
