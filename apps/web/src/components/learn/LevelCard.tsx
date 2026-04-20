@@ -38,10 +38,10 @@ export default function LevelCard({ level, onClick }: LevelCardProps) {
     <motion.div
       whileHover={{ y: -4, scale: 1.01 }}
       transition={{ type: 'spring', stiffness: 300 }}
-      className="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-lg hover:shadow-primary/10 hover:border-primary/30 transition-all flex flex-col group cursor-pointer"
-      onClick={() => onClick && onClick(level.id)}
+      className="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-lg hover:shadow-primary/10 hover:border-primary/30 transition-all flex flex-col group cursor-pointer relative"
+      onClick={() => onClick && onClick(level.code)}
     >
-      <div className="p-6 flex-1 flex flex-col">
+      <div className="p-6 flex-1 flex flex-col pt-8">
         <span className="text-[10px] font-bold tracking-widest text-foreground/40 uppercase mb-3">
           NIVEL
         </span>

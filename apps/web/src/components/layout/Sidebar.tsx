@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from "react";
-import { Home, Award, Settings, LogOut, Flame, BarChart2, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Home, Award, Settings, LogOut, Flame, BarChart2, ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
@@ -11,9 +11,24 @@ export default function Sidebar() {
   const supabase = createClient();
   const router = useRouter();
   const pathname = usePathname();
-  
+
   // Collapse sidebar by default only when entering the learn module
   const [isCollapsed, setIsCollapsed] = useState(pathname === '/learn');
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      if (data?.role) setUserRole(data.role);
+    };
+    fetchRole();
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -71,6 +86,9 @@ export default function Sidebar() {
           <NavItem href="/progress" icon={<BarChart2 size={18} />} label="Mi Progreso" active={pathname === '/progress'} collapsed={isCollapsed} />
           <NavItem href="/streak" icon={<Flame size={18} />} label="Racha Diaria" active={pathname === '/streak'} collapsed={isCollapsed} />
           <NavItem href="/leaderboard" icon={<Award size={18} />} label="Clasificación" active={pathname === '/leaderboard'} collapsed={isCollapsed} />
+          {userRole === 'admin' && (
+            <NavItem href="/admin" icon={<ShieldCheck size={18} />} label="Administración" active={pathname.startsWith('/admin')} collapsed={isCollapsed} />
+          )}
         </nav>
       </div>
 

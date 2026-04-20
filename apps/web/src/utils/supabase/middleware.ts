@@ -70,15 +70,28 @@ export async function updateSession(request: NextRequest) {
       .single()
 
     if (profile) {
-      // 1. Check if user needs to complete onboarding
-      if (!profile.onboarding_completed && !request.nextUrl.pathname.startsWith('/onboarding')) {
-        const url = request.nextUrl.clone()
-        url.pathname = '/onboarding'
-        return NextResponse.redirect(url)
+      // 1. Check if user needs to complete onboarding or change password (first-login teachers)
+      if (!profile.onboarding_completed) {
+        if (profile.role === 'teacher') {
+          if (!request.nextUrl.pathname.startsWith('/change-password')) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/change-password'
+            return NextResponse.redirect(url)
+          }
+        } else if (!request.nextUrl.pathname.startsWith('/onboarding')) {
+          const url = request.nextUrl.clone()
+          url.pathname = '/onboarding'
+          return NextResponse.redirect(url)
+        }
       }
 
       // 2. Role-Based Access Control (Admin Routes Protection)
-      if (request.nextUrl.pathname.startsWith('/admin') && profile.role !== 'admin') {
+      // Admin and teacher both can enter /admin; teacher permissions refined later.
+      if (
+        request.nextUrl.pathname.startsWith('/admin') &&
+        profile.role !== 'admin' &&
+        profile.role !== 'teacher'
+      ) {
         const url = request.nextUrl.clone()
         url.pathname = '/dashboard'
         return NextResponse.redirect(url)
