@@ -40,7 +40,8 @@ export async function updateSession(request: NextRequest) {
     user &&
     (request.nextUrl.pathname === '/' ||
      request.nextUrl.pathname.startsWith('/login') ||
-     request.nextUrl.pathname.startsWith('/signup'))
+     request.nextUrl.pathname.startsWith('/signup') ||
+     request.nextUrl.pathname.startsWith('/forgot-password'))
   ) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
@@ -52,6 +53,7 @@ export async function updateSession(request: NextRequest) {
     !request.nextUrl.pathname.startsWith('/login') &&
     !request.nextUrl.pathname.startsWith('/signup') &&
     !request.nextUrl.pathname.startsWith('/auth') &&
+    !request.nextUrl.pathname.startsWith('/forgot-password') &&
     request.nextUrl.pathname !== '/' && // root landing
     request.nextUrl.pathname !== '/signup' // signup page
   ) {

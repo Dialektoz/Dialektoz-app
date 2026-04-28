@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/utils/supabase/admin";
 import { Users, GraduationCap, BookOpen, TrendingUp } from "lucide-react";
+import Link from "next/link";
 
 export const metadata = {
   title: "Resumen | Admin Dialektoz",
@@ -21,7 +22,14 @@ async function getStats() {
 export default async function AdminPage() {
   const stats = await getStats();
 
-  const cards = [
+  const cards: {
+    label: string;
+    value: number | string;
+    icon: typeof Users;
+    color: string;
+    bg: string;
+    href?: string;
+  }[] = [
     {
       label: "Usuarios totales",
       value: stats.totalUsers,
@@ -35,6 +43,7 @@ export default async function AdminPage() {
       icon: GraduationCap,
       color: "text-green-500",
       bg: "bg-green-500/10",
+      href: "/admin/teachers",
     },
     {
       label: "Estudiantes",
@@ -42,6 +51,7 @@ export default async function AdminPage() {
       icon: BookOpen,
       color: "text-purple-500",
       bg: "bg-purple-500/10",
+      href: "/admin/users",
     },
     {
       label: "Crecimiento",
@@ -60,17 +70,40 @@ export default async function AdminPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {cards.map(({ label, value, icon: Icon, color, bg }) => (
-          <div key={label} className="bg-card border border-border rounded-xl p-5 flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-lg ${bg} flex items-center justify-center shrink-0`}>
-              <Icon size={22} className={color} />
+        {cards.map(({ label, value, icon: Icon, color, bg, href }) => {
+          const content = (
+            <>
+              <div className={`w-12 h-12 rounded-lg ${bg} flex items-center justify-center shrink-0`}>
+                <Icon size={22} className={color} />
+              </div>
+              <div>
+                <p className="text-foreground/60 text-xs font-medium">{label}</p>
+                <p className="text-2xl font-bold text-foreground">{value}</p>
+              </div>
+            </>
+          );
+
+          const baseClasses =
+            "bg-card border border-border rounded-xl p-5 flex items-center gap-4 transition-all";
+
+          if (href) {
+            return (
+              <Link
+                key={label}
+                href={href}
+                className={`${baseClasses} hover:border-primary/50 hover:bg-card/70 cursor-pointer`}
+              >
+                {content}
+              </Link>
+            );
+          }
+
+          return (
+            <div key={label} className={baseClasses}>
+              {content}
             </div>
-            <div>
-              <p className="text-foreground/60 text-xs font-medium">{label}</p>
-              <p className="text-2xl font-bold text-foreground">{value}</p>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

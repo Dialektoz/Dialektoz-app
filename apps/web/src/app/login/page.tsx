@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
-import { useRouter } from 'next/navigation'
-import { LogIn, Mail, Lock, Loader2 } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { LogIn, Mail, Lock, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { Logo } from '@/components/ui/Logo'
 
 export default function LoginPage() {
@@ -12,6 +13,19 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const justReset = searchParams.get('reset') === 'ok'
+  const linkErrorCode = searchParams.get('error')
+  const linkErrorMessage = (() => {
+    switch (linkErrorCode) {
+      case 'link_expired':
+        return 'El enlace expiró o ya fue usado. Pide al admin que reenvíe la invitación o solicita un nuevo enlace de recuperación.'
+      case 'auth_error':
+        return 'No pudimos validar el enlace. Intenta solicitar uno nuevo.'
+      default:
+        return null
+    }
+  })()
   const supabase = createClient()
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -121,7 +135,15 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[11px] font-bold text-primary/80 uppercase tracking-widest ml-1">Contraseña</label>
+              <div className="flex items-center justify-between ml-1">
+                <label className="text-[11px] font-bold text-primary/80 uppercase tracking-widest">Contraseña</label>
+                <Link
+                  href="/forgot-password"
+                  className="text-[11px] font-bold text-foreground/50 hover:text-primary transition-colors"
+                >
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-foreground/30 group-focus-within:text-primary transition-colors">
                   <Lock size={18} />
@@ -136,6 +158,20 @@ export default function LoginPage() {
                 />
               </div>
             </div>
+
+            {justReset && !error && (
+              <div className="bg-green-500/10 border border-green-500/20 text-green-400 text-xs py-2.5 px-4 rounded-lg flex items-center gap-2">
+                <CheckCircle2 size={14} className="shrink-0" />
+                <span>Contraseña actualizada. Inicia sesión con la nueva.</span>
+              </div>
+            )}
+
+            {linkErrorMessage && !error && (
+              <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs py-2.5 px-4 rounded-lg flex items-start gap-2">
+                <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                <span>{linkErrorMessage}</span>
+              </div>
+            )}
 
             {error && (
               <div className="bg-red-500/10 border border-red-500/20 text-red-500 text-xs py-2.5 px-4 rounded-lg animate-shake">

@@ -1,12 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { KeyRound, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
 
 export default function ChangePasswordPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const isRecovery = searchParams.get('recovery') === '1'
   const supabase = createClient()
 
   const [password, setPassword] = useState('')
@@ -31,7 +33,6 @@ export default function ChangePasswordPage() {
 
     setIsLoading(true)
 
-    // Update password in Supabase Auth
     const { error: updateError } = await supabase.auth.updateUser({ password })
     if (updateError) {
       setError(updateError.message)
@@ -39,8 +40,19 @@ export default function ChangePasswordPage() {
       return
     }
 
-    // Mark onboarding as completed so middleware stops redirecting here
     const { data: { user } } = await supabase.auth.getUser()
+
+    if (isRecovery) {
+      // Recovery flow: user just reset password. Don't touch onboarding_completed —
+      // it may already be true (existing user) or stay false (teacher first-login).
+      // Sign out so they re-enter with the new credentials cleanly.
+      await supabase.auth.signOut()
+      router.push('/login?reset=ok')
+      router.refresh()
+      return
+    }
+
+    // First-login flow: mark onboarding_completed so middleware stops redirecting here
     if (user) {
       await supabase
         .from('profiles')
@@ -63,9 +75,13 @@ export default function ChangePasswordPage() {
           <div className="w-14 h-14 bg-primary/10 border border-primary/20 rounded-2xl flex items-center justify-center text-primary mb-5">
             <KeyRound size={26} />
           </div>
-          <h1 className="text-2xl font-extrabold mb-2">Establece tu contraseña</h1>
+          <h1 className="text-2xl font-extrabold mb-2">
+            {isRecovery ? 'Crea una nueva contraseña' : 'Establece tu contraseña'}
+          </h1>
           <p className="text-foreground/60 text-sm leading-relaxed">
-            Por seguridad, debes crear una contraseña personal antes de continuar.
+            {isRecovery
+              ? 'Ingresa tu nueva contraseña. Después tendrás que iniciar sesión nuevamente.'
+              : 'Por seguridad, debes crear una contraseña personal antes de continuar.'}
           </p>
         </div>
 

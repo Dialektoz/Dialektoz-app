@@ -10,8 +10,11 @@ export default function RevokeButton({ userId }: { userId: string }) {
   const handleRevoke = async () => {
     if (!confirm("¿Revocar rol de profesor? El usuario pasará a ser free.")) return;
     setLoading(true);
-    await setUserRole(userId, "free");
+    const result = await setUserRole(userId, "free");
     setLoading(false);
+    if (result.error) {
+      alert(result.error);
+    }
   };
 
   return (

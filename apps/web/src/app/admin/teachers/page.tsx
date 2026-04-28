@@ -4,6 +4,7 @@ import { GraduationCap } from "lucide-react";
 import { redirect } from "next/navigation";
 import AddTeacherForm from "../AddTeacherForm";
 import RevokeButton from "./RevokeButton";
+import ResendInviteButton from "./ResendInviteButton";
 
 export const metadata = {
   title: "Profesores | Admin Dialektoz",
@@ -11,13 +12,25 @@ export const metadata = {
 
 async function getTeachers() {
   const adminClient = createAdminClient();
-  const { data, error } = await adminClient
-    .from("profiles")
-    .select("id, first_name, last_name, onboarding_completed")
-    .eq("role", "teacher");
+  const [profilesRes, authRes] = await Promise.all([
+    adminClient
+      .from("profiles")
+      .select("id, first_name, last_name, onboarding_completed")
+      .eq("role", "teacher"),
+    adminClient.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+  ]);
 
-  if (error) console.error("[admin/teachers]", error.message);
-  return data ?? [];
+  if (profilesRes.error) console.error("[admin/teachers] profiles:", profilesRes.error.message);
+  if (authRes.error) console.error("[admin/teachers] auth:", authRes.error.message);
+
+  const emailById = new Map(
+    (authRes.data?.users ?? []).map((u) => [u.id, u.email ?? null]),
+  );
+
+  return (profilesRes.data ?? []).map((t) => ({
+    ...t,
+    email: emailById.get(t.id) ?? null,
+  }));
 }
 
 export default async function TeachersPage() {
@@ -52,6 +65,7 @@ export default async function TeachersPage() {
               <tr className="border-b border-border text-foreground/50 text-xs uppercase tracking-wider">
                 <th className="text-left px-6 py-4 font-medium">Nombre</th>
                 <th className="text-left px-6 py-4 font-medium">Apellido</th>
+                <th className="text-left px-6 py-4 font-medium">Correo</th>
                 <th className="text-left px-6 py-4 font-medium">Rol</th>
                 <th className="text-left px-6 py-4 font-medium">Estado</th>
                 <th className="px-6 py-4" />
@@ -66,6 +80,7 @@ export default async function TeachersPage() {
                   <td className="px-6 py-4 text-foreground/70">
                     {teacher.last_name ?? "—"}
                   </td>
+                  <td className="px-6 py-4 text-foreground/70">{teacher.email ?? "—"}</td>
                   <td className="px-6 py-4">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-500/15 text-green-600">
                       teacher
@@ -83,7 +98,12 @@ export default async function TeachersPage() {
                     )}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <RevokeButton userId={teacher.id} />
+                    <div className="flex items-center justify-end gap-4">
+                      {!teacher.onboarding_completed && (
+                        <ResendInviteButton userId={teacher.id} />
+                      )}
+                      <RevokeButton userId={teacher.id} />
+                    </div>
                   </td>
                 </tr>
               ))}
