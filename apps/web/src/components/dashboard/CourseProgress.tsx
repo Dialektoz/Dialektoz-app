@@ -1,4 +1,4 @@
-import { Play, ArrowRight, BookOpen, Clock, Users } from "lucide-react";
+import { Play, ArrowRight, Clock, Users } from "lucide-react";
 
 export default function CourseProgress() {
   return (

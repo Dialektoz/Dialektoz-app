@@ -1,17 +1,18 @@
 'use client';
 
 import { useEditor, EditorContent } from '@tiptap/react';
+import type { Editor, JSONContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Bold, Italic, Strikethrough, List, ListOrdered, Heading2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface RichTextEditorProps {
-  content: any;
-  onChange: (json: any) => void;
+  content: JSONContent | null;
+  onChange: (json: JSONContent) => void;
   editable?: boolean;
 }
 
-const MenuBar = ({ editor }: { editor: any }) => {
+const MenuBar = ({ editor }: { editor: Editor | null }) => {
   if (!editor) {
     return null;
   }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, useRef, useEffect, useLayoutEffect } from 'react'
+import { useState, useTransition, useRef, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown, Loader2, Check } from 'lucide-react'
 import { setUserRole } from '../actions'
@@ -44,11 +44,6 @@ export default function RoleSelector({
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null)
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   // Position the popover anchored to the button using viewport coords.
   // The popover lives in a portal at <body>, so it escapes the table's overflow:hidden.
@@ -107,7 +102,7 @@ export default function RoleSelector({
         <ChevronDown size={11} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      {mounted && isOpen && coords && createPortal(
+      {typeof document !== 'undefined' && isOpen && coords && createPortal(
         <>
           <div className="fixed inset-0 z-[60]" onClick={() => setIsOpen(false)} />
           <div

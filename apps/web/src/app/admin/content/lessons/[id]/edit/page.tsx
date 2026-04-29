@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { LessonBuilder, BlockData } from '@/components/editor/LessonBuilder';
+import { LessonBuilder } from '@/components/editor/LessonBuilder';
+import type { BlockData } from '@/components/editor/LessonBuilder';
 import { ArrowLeft, Save, Loader2 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 
@@ -29,6 +30,10 @@ export default function LessonEditorPage() {
   const [blocks, setBlocks] = useState<BlockData[]>([
     { id: 'initial-1', type: 'heading', content: '' },
   ]);
+
+  const getTextContent = (content: BlockData['content']) => (
+    typeof content === 'string' ? content : ''
+  );
 
   useEffect(() => {
     async function loadData() {
@@ -63,8 +68,9 @@ export default function LessonEditorPage() {
     setIsSaving(true);
 
     let finalTitle = title;
-    if (!finalTitle && blocks[0]?.type === 'heading' && blocks[0]?.content) {
-      finalTitle = blocks[0].content;
+    const firstHeadingTitle = blocks[0]?.type === 'heading' ? getTextContent(blocks[0].content) : '';
+    if (!finalTitle && firstHeadingTitle) {
+      finalTitle = firstHeadingTitle;
       setTitle(finalTitle);
     }
     if (!finalTitle) finalTitle = 'Lección sin título';

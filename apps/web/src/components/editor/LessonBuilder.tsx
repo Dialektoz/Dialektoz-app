@@ -1,5 +1,6 @@
 'use client';
 
+import type { JSONContent } from '@tiptap/react';
 import { useState } from 'react';
 import { Plus, GripVertical, FileText, Image as ImageIcon, Type, LayoutGrid, CheckSquare, HelpCircle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,10 +10,18 @@ import { RichTextEditor } from './RichTextEditor';
 // Tipos de Bloques Soportados
 export type BlockType = 'heading' | 'text' | 'image' | 'grid' | 'fill-blank' | 'quiz';
 
+export interface QuizContent {
+  question?: string;
+  options?: string[];
+  correctIndex?: number;
+}
+
+export type BlockContent = string | JSONContent | QuizContent;
+
 export interface BlockData {
   id: string;
   type: BlockType;
-  content?: any;
+  content?: BlockContent;
   columns?: number;
   items?: BlockData[];
 }
@@ -28,6 +37,18 @@ export function LessonBuilder({ initialBlocks = [], onChange }: LessonBuilderPro
   );
 
   const [activeMenuIndex, setActiveMenuIndex] = useState<number | null>(null);
+
+  const getStringContent = (content: BlockContent | undefined) => (
+    typeof content === 'string' ? content : ''
+  );
+
+  const getRichTextContent = (content: BlockContent | undefined): JSONContent | null => (
+    content && typeof content === 'object' && 'type' in content ? content as JSONContent : null
+  );
+
+  const getQuizContent = (content: BlockContent | undefined): QuizContent => (
+    content && typeof content === 'object' && !('type' in content) ? content as QuizContent : {}
+  );
 
   const addBlock = (index: number, type: BlockType) => {
     const newBlock: BlockData = {
@@ -52,7 +73,7 @@ export function LessonBuilder({ initialBlocks = [], onChange }: LessonBuilderPro
     onChange?.(newBlocks);
   };
 
-  const updateBlock = (id: string, newContent: any) => {
+  const updateBlock = (id: string, newContent: BlockContent) => {
     const newBlocks = blocks.map(b => b.id === id ? { ...b, content: newContent } : b);
     setBlocks(newBlocks);
     onChange?.(newBlocks);
@@ -67,7 +88,7 @@ export function LessonBuilder({ initialBlocks = [], onChange }: LessonBuilderPro
             type="text" 
             className="w-full text-4xl font-bold bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground/50 focus:ring-0"
             placeholder="Escribe el Título..."
-            value={block.content || ''}
+            value={getStringContent(block.content)}
             onChange={(e) => updateBlock(block.id, e.target.value)}
           />
         );
@@ -75,7 +96,7 @@ export function LessonBuilder({ initialBlocks = [], onChange }: LessonBuilderPro
         return (
           <div className="min-h-[100px]">
             <RichTextEditor 
-              content={block.content} 
+              content={getRichTextContent(block.content)} 
               onChange={(json) => updateBlock(block.id, json)} 
             />
           </div>
@@ -104,13 +125,13 @@ export function LessonBuilder({ initialBlocks = [], onChange }: LessonBuilderPro
                 rows={2}
                 className="w-full text-lg bg-background border border-border outline-none text-foreground px-5 py-4 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none font-medium"
                 placeholder="Ex: The cat is {{on}} the table."
-                value={block.content || ''}
+                value={getStringContent(block.content)}
                 onChange={(e) => updateBlock(block.id, e.target.value)}
               />
               <div className="mt-4 flex flex-wrap gap-2 items-center">
                 <span className="text-xs font-bold text-muted-foreground uppercase opacity-70">Vista previa:</span>
                 <div className="flex items-center gap-2 text-foreground font-medium p-3 bg-background/50 rounded-lg border border-border/40">
-                  {block.content ? block.content.split(/(\{\{.*?\}\})/).map((part: string, i: number) => {
+                  {getStringContent(block.content) ? getStringContent(block.content).split(/(\{\{.*?\}\})/).map((part: string, i: number) => {
                     if (part.startsWith('{{') && part.endsWith('}}')) {
                       return <span key={i} className="inline-block px-3 py-1 bg-primary/10 border-b-2 border-primary text-primary min-w-[60px] text-center rounded-sm">...</span>;
                     }
@@ -163,31 +184,31 @@ export function LessonBuilder({ initialBlocks = [], onChange }: LessonBuilderPro
               type="text" 
               className="w-full text-lg font-bold bg-background border border-border outline-none text-foreground px-4 py-3 rounded-xl focus:border-secondary mb-4"
               placeholder="¿Cuál es la pregunta?"
-              value={block.content?.question || ''}
-              onChange={(e) => updateBlock(block.id, { ...block.content, question: e.target.value })}
+              value={getQuizContent(block.content).question || ''}
+              onChange={(e) => updateBlock(block.id, { ...getQuizContent(block.content), question: e.target.value })}
             />
             <div className="space-y-2">
               {[0, 1, 2].map((i) => (
                 <div key={i} className="flex items-center gap-3 bg-background/40 p-2 rounded-lg border border-border/40">
-                  <div className={`w-5 h-5 rounded-full border-2 border-secondary/50 flex items-center justify-center ${block.content?.correctIndex === i ? 'bg-secondary' : ''}`}>
-                    {block.content?.correctIndex === i && <div className="w-2 h-2 bg-white rounded-full" />}
+                  <div className={`w-5 h-5 rounded-full border-2 border-secondary/50 flex items-center justify-center ${getQuizContent(block.content).correctIndex === i ? 'bg-secondary' : ''}`}>
+                    {getQuizContent(block.content).correctIndex === i && <div className="w-2 h-2 bg-white rounded-full" />}
                   </div>
                   <input 
                     type="text"
                     className="flex-1 bg-transparent border-none outline-none text-sm"
                     placeholder={`Opción ${i + 1}`}
-                    value={block.content?.options?.[i] || ''}
+                    value={getQuizContent(block.content).options?.[i] || ''}
                     onChange={(e) => {
-                      const newOptions = [...(block.content?.options || ['', '', ''])];
+                      const newOptions = [...(getQuizContent(block.content).options || ['', '', ''])];
                       newOptions[i] = e.target.value;
-                      updateBlock(block.id, { ...block.content, options: newOptions });
+                      updateBlock(block.id, { ...getQuizContent(block.content), options: newOptions });
                     }}
                   />
                   <Button 
                     variant="ghost" 
                     size="sm" 
                     className="text-[10px] uppercase font-bold text-secondary"
-                    onClick={() => updateBlock(block.id, { ...block.content, correctIndex: i })}
+                    onClick={() => updateBlock(block.id, { ...getQuizContent(block.content), correctIndex: i })}
                   >
                     Marcar Correcta
                   </Button>

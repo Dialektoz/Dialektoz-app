@@ -1,17 +1,30 @@
 'use client'
 
 import { useState } from 'react'
+import type { JSONContent } from '@tiptap/react'
 import { CheckSquare, HelpCircle, Image as ImageIcon, Check, X } from 'lucide-react'
-import type { BlockData } from '@/components/editor/LessonBuilder'
+import type { BlockContent, BlockData, QuizContent } from '@/components/editor/LessonBuilder'
 
-function RichTextView({ content }: { content: any }) {
+const getStringContent = (content: BlockContent | undefined) => (
+  typeof content === 'string' ? content : ''
+)
+
+const getRichTextContent = (content: BlockContent | undefined): JSONContent | null => (
+  content && typeof content === 'object' && 'type' in content ? content as JSONContent : null
+)
+
+const getQuizContent = (content: BlockContent | undefined): QuizContent => (
+  content && typeof content === 'object' && !('type' in content) ? content as QuizContent : {}
+)
+
+function RichTextView({ content }: { content: JSONContent | null }) {
   // Minimal TipTap-compatible JSON renderer. Handles doc > paragraph > text with marks.
   if (!content || typeof content !== 'object') return null
 
-  const renderNode = (node: any, key: number): React.ReactNode => {
+  const renderNode = (node: JSONContent, key: number): React.ReactNode => {
     if (!node) return null
     if (node.type === 'doc' || node.type === 'paragraph') {
-      const children = (node.content || []).map((n: any, i: number) => renderNode(n, i))
+      const children = (node.content || []).map((child, i) => renderNode(child, i))
       if (node.type === 'paragraph') {
         return <p key={key} className="text-foreground/80 leading-relaxed my-3">{children}</p>
       }
@@ -23,7 +36,7 @@ function RichTextView({ content }: { content: any }) {
         if (mark.type === 'bold') el = <strong key={key}>{el}</strong>
         else if (mark.type === 'italic') el = <em key={key}>{el}</em>
         else if (mark.type === 'underline') el = <u key={key}>{el}</u>
-        else if (mark.type === 'link') el = <a key={key} href={mark.attrs?.href} className="text-primary underline">{el}</a>
+        else if (mark.type === 'link') el = <a key={key} href={typeof mark.attrs?.href === 'string' ? mark.attrs.href : undefined} className="text-primary underline">{el}</a>
       }
       return <span key={key}>{el}</span>
     }
@@ -102,7 +115,7 @@ function FillBlankBlock({ content }: { content: string }) {
   )
 }
 
-function QuizBlock({ content }: { content: { question?: string; options?: string[]; correctIndex?: number } }) {
+function QuizBlock({ content }: { content: QuizContent }) {
   const [selected, setSelected] = useState<number | null>(null)
   const [checked, setChecked] = useState(false)
 
@@ -173,9 +186,9 @@ function QuizBlock({ content }: { content: { question?: string; options?: string
 function Block({ block }: { block: BlockData }) {
   switch (block.type) {
     case 'heading':
-      return <h2 className="text-3xl font-bold text-foreground mt-8 mb-4 tracking-tight">{block.content || ''}</h2>
+      return <h2 className="text-3xl font-bold text-foreground mt-8 mb-4 tracking-tight">{getStringContent(block.content)}</h2>
     case 'text':
-      return <div className="prose prose-invert max-w-none"><RichTextView content={block.content} /></div>
+      return <div className="prose prose-invert max-w-none"><RichTextView content={getRichTextContent(block.content)} /></div>
     case 'image':
       if (typeof block.content === 'string' && block.content) {
         return (
@@ -193,9 +206,9 @@ function Block({ block }: { block: BlockData }) {
         </div>
       )
     case 'fill-blank':
-      return <div className="my-6"><FillBlankBlock content={block.content || ''} /></div>
+      return <div className="my-6"><FillBlankBlock content={getStringContent(block.content)} /></div>
     case 'quiz':
-      return <div className="my-6"><QuizBlock content={block.content || {}} /></div>
+      return <div className="my-6"><QuizBlock content={getQuizContent(block.content)} /></div>
     case 'grid':
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
