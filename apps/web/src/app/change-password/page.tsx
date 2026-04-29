@@ -1,11 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { KeyRound, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
 
 export default function ChangePasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <ChangePasswordInner />
+    </Suspense>
+  )
+}
+
+function ChangePasswordInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const isRecovery = searchParams.get('recovery') === '1'
