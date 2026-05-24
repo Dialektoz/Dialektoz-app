@@ -8,9 +8,9 @@ import type { AssignableRole } from '../roles'
 
 const ROLE_OPTIONS: { value: AssignableRole; label: string; description: string }[] = [
   { value: 'admin', label: 'Admin', description: 'Acceso total al panel' },
+  { value: 'teacher', label: 'Teacher', description: 'Profesor — pasa a /admin/teachers' },
   { value: 'premium', label: 'Premium', description: 'Estudiante con suscripción' },
   { value: 'free', label: 'Free', description: 'Estudiante sin suscripción' },
-  // 'teacher' is intentionally not exposed here — teachers are managed from /admin/teachers.
 ]
 
 const ROLE_BADGE: Record<string, string> = {

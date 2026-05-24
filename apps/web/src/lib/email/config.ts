@@ -17,7 +17,7 @@
  * and we don't have to change call sites once we migrate.
  */
 
-const USE_CUSTOM_SMTP_FROM = false
+const USE_CUSTOM_SMTP_FROM = true
 
 export const SENDER_FROM = USE_CUSTOM_SMTP_FROM
   ? 'Dialektoz <noreply@dialektoz.com>'
