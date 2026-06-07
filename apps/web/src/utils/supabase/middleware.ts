@@ -54,6 +54,7 @@ export async function updateSession(request: NextRequest) {
     !request.nextUrl.pathname.startsWith('/signup') &&
     !request.nextUrl.pathname.startsWith('/auth') &&
     !request.nextUrl.pathname.startsWith('/forgot-password') &&
+    !request.nextUrl.pathname.startsWith('/privacy') &&
     request.nextUrl.pathname !== '/' && // root landing
     request.nextUrl.pathname !== '/signup' // signup page
   ) {
@@ -64,7 +65,12 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Progressive Profiling Check & RBAC
-  if (user && !request.nextUrl.pathname.startsWith('/auth') && request.nextUrl.pathname !== '/') {
+  if (
+    user &&
+    !request.nextUrl.pathname.startsWith('/auth') &&
+    !request.nextUrl.pathname.startsWith('/privacy') &&
+    request.nextUrl.pathname !== '/'
+  ) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('onboarding_completed, role')
