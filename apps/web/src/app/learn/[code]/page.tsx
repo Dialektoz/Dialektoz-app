@@ -4,9 +4,9 @@ import TopNavigation from '@/components/layout/TopNavigation'
 import MobileHeader from '@/components/layout/MobileHeader'
 import MobileBottomNav from '@/components/layout/MobileBottomNav'
 import { createClient } from '@/utils/supabase/server'
-import { ArrowLeft, BookOpen, Clock, Play, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, BookOpen, Clock, Play, CheckCircle2, Lock } from 'lucide-react'
 import { notFound } from 'next/navigation'
-import { getCompletedLessonIds } from '@/lib/learning'
+import { getCompletedLessonIds, computeUnlocked } from '@/lib/learning'
 
 export default async function LevelLessonsPage({
   params,
@@ -37,6 +37,7 @@ export default async function LevelLessonsPage({
   const realLessons = lessons || []
   const completed = await getCompletedLessonIds(supabase, user?.id ?? null, realLessons.map((l) => l.id))
   const percent = realLessons.length ? Math.round((completed.size / realLessons.length) * 100) : 0
+  const unlocked = computeUnlocked(realLessons, completed)
 
   return (
     <div className="flex w-full h-[100dvh] bg-background overflow-hidden">
@@ -84,15 +85,17 @@ export default async function LevelLessonsPage({
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {realLessons.map((lesson, idx) => (
-                <Link
-                  key={lesson.id}
-                  href={`/learn/${code.toLowerCase()}/${lesson.id}`}
-                  className="flex items-center justify-between p-4 bg-card border border-border/60 hover:border-primary/50 transition-colors rounded-xl group"
-                >
+              {realLessons.map((lesson, idx) => {
+                const isDone = completed.has(lesson.id)
+                const isOpen = unlocked.has(lesson.id)
+                const rowClass = `flex items-center justify-between p-4 bg-card border rounded-xl group transition-colors ${
+                  isOpen ? 'border-border/60 hover:border-primary/50' : 'border-border/40 opacity-60 cursor-not-allowed'
+                }`
+                const row = (
+                  <>
                   <div className="flex items-center gap-4 min-w-0">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-colors shrink-0 ${completed.has(lesson.id) ? 'bg-green-500/15 text-green-600' : 'bg-muted text-foreground/60 group-hover:bg-primary/20 group-hover:text-primary'}`}>
-                      {completed.has(lesson.id) ? <CheckCircle2 className="w-5 h-5" /> : lesson.order || idx + 1}
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-colors shrink-0 ${isDone ? 'bg-green-500/15 text-green-600' : !isOpen ? 'bg-muted text-foreground/40' : 'bg-muted text-foreground/60 group-hover:bg-primary/20 group-hover:text-primary'}`}>
+                      {isDone ? <CheckCircle2 className="w-5 h-5" /> : !isOpen ? <Lock className="w-4 h-4" /> : lesson.order || idx + 1}
                     </div>
                     <div className="min-w-0">
                       <h3 className="font-semibold text-foreground truncate">{lesson.title}</h3>
@@ -115,12 +118,28 @@ export default async function LevelLessonsPage({
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 text-primary font-semibold text-sm shrink-0 pl-3">
-                    <Play className="w-4 h-4 fill-primary" />
-                    <span className="hidden sm:inline">Empezar</span>
+                  <div className={`flex items-center gap-2 font-semibold text-sm shrink-0 pl-3 ${isOpen ? 'text-primary' : 'text-foreground/40'}`}>
+                    {isOpen ? <Play className="w-4 h-4 fill-primary" /> : <Lock className="w-4 h-4" />}
+                    <span className="hidden sm:inline">{!isOpen ? 'Bloqueada' : isDone ? 'Repasar' : 'Empezar'}</span>
                   </div>
-                </Link>
-              ))}
+                  </>
+                )
+
+                return isOpen ? (
+                  <Link key={lesson.id} href={`/learn/${code.toLowerCase()}/${lesson.id}`} className={rowClass}>
+                    {row}
+                  </Link>
+                ) : (
+                  <div
+                    key={lesson.id}
+                    aria-disabled
+                    title="Completa la lección anterior para desbloquearla"
+                    className={rowClass}
+                  >
+                    {row}
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>

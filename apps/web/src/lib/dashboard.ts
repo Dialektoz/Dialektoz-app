@@ -1,7 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { cefrLabel } from './learning';
-
-const XP_PER_LESSON = 50;
+import { cefrLabel, computeStreak } from './learning';
 
 interface LessonRow {
   id: string;
@@ -67,28 +65,6 @@ export interface DashboardData {
   hasAnyProgress: boolean;
 }
 
-function computeStreak(dates: string[]): number {
-  // dates: ISO timestamps. Count consecutive days ending today or yesterday.
-  const days = new Set(dates.map((d) => new Date(d).toISOString().slice(0, 10)));
-  if (days.size === 0) return 0;
-  const dayMs = 86400000;
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
-  const todayStr = today.toISOString().slice(0, 10);
-  const yesterdayStr = new Date(today.getTime() - dayMs).toISOString().slice(0, 10);
-  if (!days.has(todayStr) && !days.has(yesterdayStr)) return 0;
-
-  let streak = 0;
-  const cursor = new Date(today);
-  // If no activity today, start counting from yesterday.
-  if (!days.has(todayStr)) cursor.setTime(cursor.getTime() - dayMs);
-  while (days.has(cursor.toISOString().slice(0, 10))) {
-    streak++;
-    cursor.setTime(cursor.getTime() - dayMs);
-  }
-  return streak;
-}
-
 export async function getDashboardData(supabase: SupabaseClient, userId: string | null): Promise<DashboardData> {
   const [{ data: levels }, { data: lessons }] = await Promise.all([
     supabase.from('levels').select('id, code, title, description, order_index').eq('published', true).order('order_index', { ascending: true }),
@@ -96,12 +72,14 @@ export async function getDashboardData(supabase: SupabaseClient, userId: string 
   ]);
 
   let progress: ProgressRow[] = [];
+  let activity: { activity_date: string; xp_earned: number }[] = [];
   if (userId) {
-    const { data } = await supabase
-      .from('user_progress')
-      .select('lesson_id, status, score, last_accessed_at')
-      .eq('user_id', userId);
-    progress = (data as ProgressRow[]) ?? [];
+    const [{ data: prog }, { data: act }] = await Promise.all([
+      supabase.from('user_progress').select('lesson_id, status, score, last_accessed_at').eq('user_id', userId),
+      supabase.from('user_activity').select('activity_date, xp_earned').eq('user_id', userId),
+    ]);
+    progress = (prog as ProgressRow[]) ?? [];
+    activity = (act as { activity_date: string; xp_earned: number }[]) ?? [];
   }
 
   const levelRows = (levels as LevelRow[]) ?? [];
@@ -110,10 +88,12 @@ export async function getDashboardData(supabase: SupabaseClient, userId: string 
   const lessonById = new Map(lessonRows.map((l) => [l.id, l]));
 
   // Stats
+  // XP and streak come from the activity log (authoritative, written server-side
+  // by record_progress). Completion counts still come from user_progress.
   const completed = progress.filter((p) => p.status === 'completed');
-  const xp = completed.reduce((sum, p) => sum + XP_PER_LESSON + (p.score ?? 0), 0);
+  const xp = activity.reduce((sum, a) => sum + (a.xp_earned ?? 0), 0);
   const perfectCount = completed.filter((p) => (p.score ?? 0) >= 100).length;
-  const streak = computeStreak(progress.map((p) => p.last_accessed_at).filter((d): d is string => !!d));
+  const streak = computeStreak(activity.map((a) => a.activity_date));
 
   // Per-level aggregates
   const lessonsByLevel = new Map<string, LessonRow[]>();

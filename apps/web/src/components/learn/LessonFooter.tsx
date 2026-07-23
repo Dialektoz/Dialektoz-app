@@ -24,36 +24,35 @@ export default function LessonFooter({ lessonId, levelCode, initialStatus, prevL
   const hasActivities = !!score && score.total > 0;
 
   // Mark the lesson as in-progress on first view (never downgrade a completed one).
+  // Progress is written server-side via record_progress(): user_progress is
+  // read-only for clients so scores/XP cannot be forged.
   useEffect(() => {
     if (initialStatus === 'completed') return;
     (async () => {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      await supabase.from('user_progress').upsert(
-        { user_id: user.id, lesson_id: lessonId, status: 'in_progress', last_accessed_at: new Date().toISOString() },
-        { onConflict: 'user_id,lesson_id' }
-      );
+      await supabase.rpc('record_progress', {
+        p_lesson_id: lessonId,
+        p_status: 'in_progress',
+        p_score: 0,
+      });
     })();
   }, [lessonId, initialStatus]);
 
   const markComplete = async () => {
     setSaving(true);
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setSaving(false);
+    const { error } = await supabase.rpc('record_progress', {
+      p_lesson_id: lessonId,
+      p_status: 'completed',
+      p_score: score ? score.percent : 0,
+    });
+    setSaving(false);
+    if (error) {
+      alert(error.message || 'No se pudo guardar tu progreso.');
       return;
     }
-    const { error } = await supabase.from('user_progress').upsert(
-      { user_id: user.id, lesson_id: lessonId, status: 'completed', score: score ? score.percent : 0, last_accessed_at: new Date().toISOString() },
-      { onConflict: 'user_id,lesson_id' }
-    );
-    setSaving(false);
-    if (!error) {
-      setCompleted(true);
-      router.refresh();
-    }
+    setCompleted(true);
+    router.refresh();
   };
 
   const base = `/learn/${levelCode.toLowerCase()}`;

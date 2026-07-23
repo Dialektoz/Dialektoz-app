@@ -1,6 +1,12 @@
 'use client'
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useSyncExternalStore } from "react";
+import {
+  subscribeSidebar,
+  getSidebarCollapsed,
+  getSidebarCollapsedServer,
+  setSidebarCollapsed,
+} from "@/lib/sidebarStore";
 import { Home, Award, Settings, LogOut, Flame, BarChart2, ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter, usePathname } from "next/navigation";
@@ -12,8 +18,14 @@ export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Collapse sidebar by default only when entering the learn module
-  const [isCollapsed, setIsCollapsed] = useState(pathname === '/learn');
+  // Collapsed by default; the user's choice persists across sections.
+  const isCollapsed = useSyncExternalStore(
+    subscribeSidebar,
+    getSidebarCollapsed,
+    getSidebarCollapsedServer
+  );
+  const toggleCollapsed = () => setSidebarCollapsed(!isCollapsed);
+
   const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
@@ -48,8 +60,8 @@ export default function Sidebar() {
             </div>
           )}
           {/* Absolute positioned toggle button pushed slightly right so it doesn't overlap the logo */}
-          <button 
-            onClick={() => setIsCollapsed(!isCollapsed)} 
+          <button
+            onClick={toggleCollapsed}
             className={`text-foreground/70 hover:text-foreground transition-colors hidden lg:flex items-center justify-center absolute top-1/2 -translate-y-1/2 ${
               isCollapsed ? '-right-2 z-10' : 'right-3'
             }`}
@@ -60,8 +72,8 @@ export default function Sidebar() {
         </div>
         
         {/* Toggle option: Visible on mobile always */}
-        <button 
-          onClick={() => setIsCollapsed(!isCollapsed)} 
+        <button
+          onClick={toggleCollapsed}
           className="lg:hidden text-foreground/70 hover:text-foreground mx-auto flex justify-center w-full mb-8"
           title={isCollapsed ? "Expandir" : "Contraer"}
         >

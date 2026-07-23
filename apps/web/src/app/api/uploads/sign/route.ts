@@ -9,17 +9,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Almacenamiento (R2) no configurado en el servidor.' }, { status: 501 });
   }
 
-  // Only signed-in staff (admin/teacher) may request an upload URL.
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
-
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-  if (!profile || !['admin', 'teacher'].includes(profile.role)) {
-    return NextResponse.json({ error: 'Sin permiso para subir archivos' }, { status: 403 });
-  }
 
   let body: { filename?: string; size?: number; folder?: string };
   try {
@@ -34,7 +28,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'El archivo supera el límite de 200 MB' }, { status: 413 });
   }
 
-  const key = buildKey(filename, folder === 'lessons' || !folder ? 'lessons' : String(folder).replace(/[^a-z0-9/_-]/gi, ''));
+  // Anyone signed in may upload their own avatar; lesson media is staff-only.
+  const isAvatar = folder === 'avatars';
+  if (!isAvatar) {
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    if (!profile || !['admin', 'teacher'].includes(profile.role)) {
+      return NextResponse.json({ error: 'Sin permiso para subir archivos' }, { status: 403 });
+    }
+  }
+
+  const key = buildKey(filename, isAvatar ? `avatars/${user.id}` : 'lessons');
   const uploadUrl = await presignPut(key);
 
   return NextResponse.json({ uploadUrl, publicUrl: publicUrl(key), key });

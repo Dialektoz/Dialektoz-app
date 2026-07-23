@@ -59,15 +59,13 @@ export default async function Dashboard() {
         <TopNavigation />
         <CourseProgress currentCourse={data.currentCourse} review={data.review} firstName={displayName.split(" ")[0]} />
       </main>
-      <div className="hidden xl:block">
-        <RightPanel
-          profile={profile}
-          stats={data.stats}
-          achievements={data.achievements}
-          leaderboard={leaderboard}
-          currentUserId={user?.id ?? null}
-        />
-      </div>
+      <RightPanel
+        profile={profile}
+        stats={data.stats}
+        achievements={data.achievements}
+        leaderboard={leaderboard}
+        currentUserId={user?.id ?? null}
+      />
       <MobileBottomNav />
     </div>
   );

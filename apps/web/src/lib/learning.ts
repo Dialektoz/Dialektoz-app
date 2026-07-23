@@ -60,6 +60,50 @@ export async function getCompletedLessonIds(
   return new Set((data ?? []).map((r: { lesson_id: string }) => r.lesson_id));
 }
 
+/**
+ * Sequential gating: a lesson is unlocked when every earlier lesson in the
+ * level is completed. In practice that means "everything completed, plus the
+ * first pending one". `lessons` must already be ordered by `order`.
+ * Mirrors the server-side rule enforced by the record_progress() RPC.
+ */
+export function computeUnlocked<T extends { id: string }>(
+  lessons: T[],
+  completed: Set<string>
+): Set<string> {
+  const unlocked = new Set<string>();
+  for (const lesson of lessons) {
+    unlocked.add(lesson.id);
+    if (!completed.has(lesson.id)) break;
+  }
+  return unlocked;
+}
+
+/**
+ * Current streak from a list of activity dates ('YYYY-MM-DD').
+ * Counts consecutive days ending today (or yesterday, so the streak
+ * survives until the day is over).
+ */
+export function computeStreak(dates: string[]): number {
+  const days = new Set(dates.map((d) => d.slice(0, 10)));
+  if (days.size === 0) return 0;
+
+  const dayMs = 86400000;
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().slice(0, 10);
+  const yesterdayStr = new Date(today.getTime() - dayMs).toISOString().slice(0, 10);
+  if (!days.has(todayStr) && !days.has(yesterdayStr)) return 0;
+
+  let streak = 0;
+  const cursor = new Date(today);
+  if (!days.has(todayStr)) cursor.setTime(cursor.getTime() - dayMs);
+  while (days.has(cursor.toISOString().slice(0, 10))) {
+    streak++;
+    cursor.setTime(cursor.getTime() - dayMs);
+  }
+  return streak;
+}
+
 /** CEFR display label for a level code. */
 export function cefrLabel(code: string): string {
   const map: Record<string, string> = {

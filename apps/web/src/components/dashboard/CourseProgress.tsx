@@ -10,7 +10,7 @@ interface CourseProgressProps {
 
 export default function CourseProgress({ currentCourse, review, firstName }: CourseProgressProps) {
   return (
-    <div className="flex flex-col gap-6 lg:gap-10 max-w-[900px] mx-auto py-2 px-1">
+    <div className="flex flex-col gap-6 lg:gap-10 w-full max-w-[900px] 2xl:max-w-[1080px] mx-auto py-2 px-1">
       {/* Current Course Card */}
       <section className="bg-card rounded-2xl p-6 md:p-8 border border-border relative overflow-hidden flex flex-col justify-between min-h-[240px] shadow-sm">
         {currentCourse ? (

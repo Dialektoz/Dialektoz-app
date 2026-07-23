@@ -5,7 +5,8 @@ import MobileHeader from '@/components/layout/MobileHeader'
 import MobileBottomNav from '@/components/layout/MobileBottomNav'
 import { createClient } from '@/utils/supabase/server'
 import { ArrowLeft, Clock } from 'lucide-react'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
+import { getCompletedLessonIds, computeUnlocked } from '@/lib/learning'
 import LessonExperience from '@/components/learn/LessonExperience'
 
 export default async function LessonViewPage({
@@ -27,7 +28,7 @@ export default async function LessonViewPage({
 
   if (!lesson || !lesson.published) notFound()
 
-  // Sibling lessons (for prev/next navigation).
+  // Sibling lessons (for prev/next navigation and sequential gating).
   const { data: siblings } = await supabase
     .from('lessons')
     .select('id')
@@ -35,10 +36,16 @@ export default async function LessonViewPage({
     .eq('published', true)
     .order('order', { ascending: true })
 
-  const ids = (siblings ?? []).map((s) => s.id)
+  const siblingLessons = siblings ?? []
+  const ids = siblingLessons.map((s) => s.id)
   const idx = ids.indexOf(lesson.id)
   const prevLessonId = idx > 0 ? ids[idx - 1] : null
   const nextLessonId = idx >= 0 && idx < ids.length - 1 ? ids[idx + 1] : null
+
+  // Sequential gating: block direct URL access to a locked lesson.
+  const completedInLevel = await getCompletedLessonIds(supabase, user?.id ?? null, ids)
+  const unlocked = computeUnlocked(siblingLessons, completedInLevel)
+  if (!unlocked.has(lesson.id)) redirect(`/learn/${code.toLowerCase()}`)
 
   // Current progress status for this user + lesson.
   let initialStatus: 'not_started' | 'in_progress' | 'completed' = 'not_started'
