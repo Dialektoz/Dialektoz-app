@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button';
 import { LessonBuilder } from '@/components/editor/LessonBuilder';
 import type { BlockInstance } from '@/components/editor/blocks/types';
 import { normalizeBlocks, createBlock } from '@/components/editor/blocks/registry';
-import { ArrowLeft, Save, Loader2, Check, CloudOff } from 'lucide-react';
+import { BlockList } from '@/components/editor/blocks/BlockList';
+import { LessonAttemptProvider } from '@/components/learn/LessonAttempt';
+import { ArrowLeft, Save, Loader2, Check, CloudOff, Eye, Pencil, Clock } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -31,6 +33,11 @@ export default function LessonEditorPage() {
   const [duration, setDuration] = useState<number | ''>('');
   const [published, setPublished] = useState(false);
   const [blocks, setBlocks] = useState<BlockInstance[]>([createBlock('heading')]);
+  const [preview, setPreview] = useState(false);
+  const [resolvedLevelCode, setResolvedLevelCode] = useState<string | null>(null);
+
+  // Level code for the preview badge: from the URL, or resolved from the lesson.
+  const displayLevelCode = levelCode ?? resolvedLevelCode;
 
   // Load existing lesson.
   useEffect(() => {
@@ -41,7 +48,7 @@ export default function LessonEditorPage() {
       }
       const { data, error } = await supabase
         .from('lessons')
-        .select('title, content, skill_type, description, published, duration_minutes')
+        .select('title, content, skill_type, description, published, duration_minutes, level_id')
         .eq('id', lessonIdParam)
         .single();
 
@@ -55,6 +62,11 @@ export default function LessonEditorPage() {
         setPublished(!!data.published);
         const normalized = normalizeBlocks(data.content);
         if (normalized.length > 0) setBlocks(normalized);
+
+        if (data.level_id) {
+          const { data: lvl } = await supabase.from('levels').select('code').eq('id', data.level_id).single();
+          if (lvl?.code) setResolvedLevelCode(lvl.code);
+        }
       }
       setIsLoading(false);
     }
@@ -152,53 +164,117 @@ export default function LessonEditorPage() {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 {levelCode ? `Atrás al Nivel ${levelCode}` : 'Atrás'}
               </Button>
-              <h1 className="text-3xl font-bold tracking-tight">{isNew ? 'Nueva Lección Interactiva' : 'Editando Lección'}</h1>
+              <h1 className="text-3xl font-bold tracking-tight">
+                {preview ? 'Vista previa' : isNew ? 'Nueva Lección Interactiva' : 'Editando Lección'}
+              </h1>
             </div>
             <div className="flex items-center gap-3">
               {!isNew && <SaveIndicator state={saveState} />}
-              <Button onClick={handleSave} disabled={isSaving} className="gap-2 shrink-0 min-w-[180px]">
+              <Button
+                variant="outline"
+                onClick={() => setPreview((p) => !p)}
+                className="gap-2 shrink-0"
+                title={preview ? 'Volver a editar' : 'Ver como lo verá el estudiante'}
+              >
+                {preview ? <Pencil className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {preview ? 'Editar' : 'Vista previa'}
+              </Button>
+              <Button onClick={handleSave} disabled={isSaving} className="gap-2 shrink-0 min-w-[160px]">
                 {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 {isSaving ? 'Guardando...' : isNew ? 'Crear Lección' : 'Guardar'}
               </Button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="md:col-span-2">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">Título de la Lección</label>
-              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full text-lg font-semibold bg-background border border-border p-3 rounded-xl outline-none text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary" placeholder="Ej: Verbo To Be básico" />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">Duración (min)</label>
-              <input type="number" min={0} value={duration} onChange={(e) => setDuration(e.target.value === '' ? '' : Number(e.target.value))} className="w-full text-base bg-background border border-border p-3 rounded-xl outline-none text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary" placeholder="Ej: 15" />
-            </div>
-          </div>
+          {preview ? (
+            <div className="rounded-2xl border border-border bg-background overflow-hidden">
+              <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-b border-border/60 bg-muted/30">
+                <Eye className="w-4 h-4 text-primary" />
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Así lo verá el estudiante
+                </span>
+                {!published && (
+                  <span className="ml-auto text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-muted text-muted-foreground font-bold">
+                    Borrador — aún no visible en /learn
+                  </span>
+                )}
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div>
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">Skill / Habilidad</label>
-              <input type="text" value={skillType} onChange={(e) => setSkillType(e.target.value)} className="w-full text-base bg-background border border-border p-3 rounded-xl outline-none text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary" placeholder="Ej: Listening, Grammar…" />
+              <div className="p-6 md:p-10">
+                <div className="max-w-3xl mx-auto">
+                  <div className="mb-8 pb-6 border-b border-border/50">
+                    <div className="flex flex-wrap items-center gap-2 mb-3 text-xs">
+                      {displayLevelCode && (
+                        <span className="uppercase tracking-wider px-2 py-0.5 rounded-sm bg-primary/10 text-primary font-bold">
+                          {displayLevelCode.toUpperCase()}
+                        </span>
+                      )}
+                      {skillType && (
+                        <>
+                          <span className="text-foreground/40">•</span>
+                          <span className="uppercase tracking-wider font-bold text-foreground/60">{skillType}</span>
+                        </>
+                      )}
+                      {duration !== '' && (
+                        <>
+                          <span className="text-foreground/40">•</span>
+                          <span className="flex items-center gap-1 text-foreground/60">
+                            <Clock className="w-3 h-3" />
+                            {duration} min
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    <h1 className="text-4xl font-bold text-foreground tracking-tight">{title || 'Lección sin título'}</h1>
+                    {description && <p className="text-foreground/60 mt-3 text-lg">{description}</p>}
+                  </div>
+
+                  <LessonAttemptProvider>
+                    <BlockList blocks={blocks} />
+                  </LessonAttemptProvider>
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">Descripción corta</label>
-              <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} className="w-full text-sm bg-background border border-border p-3 rounded-xl outline-none text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary" placeholder="Resumen para la lista (opcional)" />
-            </div>
-          </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="md:col-span-2">
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">Título de la Lección</label>
+                  <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full text-lg font-semibold bg-background border border-border p-3 rounded-xl outline-none text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary" placeholder="Ej: Verbo To Be básico" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">Duración (min)</label>
+                  <input type="number" min={0} value={duration} onChange={(e) => setDuration(e.target.value === '' ? '' : Number(e.target.value))} className="w-full text-base bg-background border border-border p-3 rounded-xl outline-none text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary" placeholder="Ej: 15" />
+                </div>
+              </div>
 
-          <div className="mb-6 flex items-center gap-3">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} className="w-4 h-4 accent-primary cursor-pointer" />
-              <span className="text-sm font-semibold text-foreground">Publicar lección (visible en /learn para estudiantes)</span>
-            </label>
-          </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">Skill / Habilidad</label>
+                  <input type="text" value={skillType} onChange={(e) => setSkillType(e.target.value)} className="w-full text-base bg-background border border-border p-3 rounded-xl outline-none text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary" placeholder="Ej: Listening, Grammar…" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">Descripción corta</label>
+                  <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} className="w-full text-sm bg-background border border-border p-3 rounded-xl outline-none text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary" placeholder="Resumen para la lista (opcional)" />
+                </div>
+              </div>
 
-          <div className="border-t border-border/50 mb-2 pt-6">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Contenido de la Lección (Bloques)</h2>
-          </div>
+              <div className="mb-6 flex items-center gap-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} className="w-4 h-4 accent-primary cursor-pointer" />
+                  <span className="text-sm font-semibold text-foreground">Publicar lección (visible en /learn para estudiantes)</span>
+                </label>
+              </div>
 
-          <div className="min-h-[500px]">
-            <LessonBuilder initialBlocks={blocks} onChange={setBlocks} />
-          </div>
+              <div className="border-t border-border/50 mb-2 pt-6">
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Contenido de la Lección (Bloques)</h2>
+              </div>
+
+              <div className="min-h-[500px]">
+                <LessonBuilder initialBlocks={blocks} onChange={setBlocks} />
+              </div>
+            </>
+          )}
         </>
       )}
     </div>
