@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 
 /** null = the activity is present but not yet answered. */
 type Result = boolean | null;
@@ -32,7 +32,14 @@ export function LessonAttemptProvider({ children }: { children: React.ReactNode 
     setResults((r) => ({ ...r, [id]: correct }));
   }, []);
 
-  return <Ctx.Provider value={{ register, unregister, report, results }}>{children}</Ctx.Provider>;
+  // Memoize so the context value only changes when `results` changes
+  // (register/unregister/report are stable). Prevents effect churn in consumers.
+  const value = useMemo(
+    () => ({ register, unregister, report, results }),
+    [register, unregister, report, results]
+  );
+
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
 export function useAttempt() {
@@ -46,16 +53,23 @@ export function useAttempt() {
  */
 export function useGradedActivity(blockId?: string) {
   const ctx = useContext(Ctx);
+  // Extract the STABLE function refs so the effect doesn't re-run every render
+  // (the ctx object identity changes whenever results change).
+  const register = ctx?.register;
+  const unregister = ctx?.unregister;
+  const report = ctx?.report;
+
   useEffect(() => {
-    if (!ctx || !blockId) return;
-    ctx.register(blockId);
-    return () => ctx.unregister(blockId);
-  }, [ctx, blockId]);
+    if (!register || !unregister || !blockId) return;
+    register(blockId);
+    return () => unregister(blockId);
+  }, [register, unregister, blockId]);
+
   return useCallback(
     (correct: boolean) => {
-      if (ctx && blockId) ctx.report(blockId, correct);
+      if (report && blockId) report(blockId, correct);
     },
-    [ctx, blockId]
+    [report, blockId]
   );
 }
 
