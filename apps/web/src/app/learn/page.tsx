@@ -10,24 +10,31 @@ export const metadata = {
 
 import { createClient } from '@/utils/supabase/server';
 import { Level } from '@/types/learning';
+import { getLevelProgressMap } from '@/lib/learning';
 
 export default async function LearnPage() {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const { data } = await supabase
     .from('levels')
-    .select('*')
+    .select('id, code, title, description, creator_name, order_index')
     .eq('published', true)
     .order('order_index', { ascending: true });
-  
+
+  const progress = await getLevelProgressMap(supabase, user?.id ?? null);
+
   // Transform DB data to match Level interface
   const dbLevels: Level[] = (data || []).map(row => ({
     id: row.id,
     code: row.code,
     title: row.title,
     description: row.description || '',
-    creatorName: 'Sarah Jenkins', // Hardcoded for now as per DB schema
-    creatorRole: 'Diseñadora de Currículo Principal',
-    progressPercentage: 0,
+    creatorName: row.creator_name || 'Equipo Dialektoz',
+    creatorRole: 'Instructor',
+    progressPercentage: progress.get(row.id)?.percent ?? 0,
     skills: [],
     bucket: { grammar: [], vocabulary: [], expressions: [] }
   }));

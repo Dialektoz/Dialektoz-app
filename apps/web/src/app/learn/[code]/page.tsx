@@ -4,8 +4,9 @@ import TopNavigation from '@/components/layout/TopNavigation'
 import MobileHeader from '@/components/layout/MobileHeader'
 import MobileBottomNav from '@/components/layout/MobileBottomNav'
 import { createClient } from '@/utils/supabase/server'
-import { ArrowLeft, BookOpen, Clock, Play } from 'lucide-react'
+import { ArrowLeft, BookOpen, Clock, Play, CheckCircle2 } from 'lucide-react'
 import { notFound } from 'next/navigation'
+import { getCompletedLessonIds } from '@/lib/learning'
 
 export default async function LevelLessonsPage({
   params,
@@ -14,6 +15,9 @@ export default async function LevelLessonsPage({
 }) {
   const { code } = await params
   const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   const { data: level } = await supabase
     .from('levels')
@@ -31,6 +35,8 @@ export default async function LevelLessonsPage({
     .order('order', { ascending: true })
 
   const realLessons = lessons || []
+  const completed = await getCompletedLessonIds(supabase, user?.id ?? null, realLessons.map((l) => l.id))
+  const percent = realLessons.length ? Math.round((completed.size / realLessons.length) * 100) : 0
 
   return (
     <div className="flex w-full h-[100dvh] bg-background overflow-hidden">
@@ -52,6 +58,18 @@ export default async function LevelLessonsPage({
             <span className="text-4xl font-black text-primary block mb-2">{level.code}</span>
             <h1 className="text-3xl font-bold text-foreground mb-3 tracking-tight">{level.title}</h1>
             <p className="text-foreground/60 max-w-2xl">{level.description}</p>
+
+            {realLessons.length > 0 && (
+              <div className="mt-5 max-w-md">
+                <div className="flex items-center justify-between text-xs font-semibold text-foreground/60 mb-1.5">
+                  <span>{completed.size} de {realLessons.length} lecciones</span>
+                  <span>{percent}%</span>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${percent}%` }} />
+                </div>
+              </div>
+            )}
           </div>
 
           <h2 className="text-xl font-bold mb-4 border-b border-border/50 pb-2">
@@ -73,8 +91,8 @@ export default async function LevelLessonsPage({
                   className="flex items-center justify-between p-4 bg-card border border-border/60 hover:border-primary/50 transition-colors rounded-xl group"
                 >
                   <div className="flex items-center gap-4 min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center font-bold text-foreground/60 group-hover:bg-primary/20 group-hover:text-primary transition-colors shrink-0">
-                      {lesson.order || idx + 1}
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-colors shrink-0 ${completed.has(lesson.id) ? 'bg-green-500/15 text-green-600' : 'bg-muted text-foreground/60 group-hover:bg-primary/20 group-hover:text-primary'}`}>
+                      {completed.has(lesson.id) ? <CheckCircle2 className="w-5 h-5" /> : lesson.order || idx + 1}
                     </div>
                     <div className="min-w-0">
                       <h3 className="font-semibold text-foreground truncate">{lesson.title}</h3>

@@ -4,6 +4,7 @@ import { ArrowLeft, PlusCircle, BookOpen, Settings, FileText } from 'lucide-reac
 import { createClient } from '@/utils/supabase/server';
 import { DeleteLevelButton } from '@/components/dashboard/DeleteLevelButton';
 import PublishLevelToggle from './PublishLevelToggle';
+import EditLevelDialog from './EditLevelDialog';
 
 export default async function LevelAdminDashboard({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
@@ -13,7 +14,7 @@ export default async function LevelAdminDashboard({ params }: { params: Promise<
 
   const { data: levelData, error: levelError } = await supabase
     .from('levels')
-    .select('id, title, code, published')
+    .select('id, title, code, description, order_index, published')
     .eq('code', levelCode)
     .single();
 
@@ -48,6 +49,15 @@ export default async function LevelAdminDashboard({ params }: { params: Promise<
           </Link>
 
           <div className="flex items-center gap-2">
+            <EditLevelDialog
+              level={{
+                id: levelData.id,
+                code: levelData.code,
+                title: levelData.title,
+                description: levelData.description,
+                order_index: levelData.order_index,
+              }}
+            />
             <PublishLevelToggle levelId={levelData.id} initialPublished={!!levelData.published} />
             <DeleteLevelButton levelId={levelData.id} levelTitle={levelData.title} />
           </div>

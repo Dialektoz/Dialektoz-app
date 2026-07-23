@@ -10,6 +10,7 @@ const ROLE_OPTIONS: { value: AssignableRole; label: string; description: string 
   { value: 'admin', label: 'Admin', description: 'Acceso total al panel' },
   { value: 'teacher', label: 'Teacher', description: 'Profesor — pasa a /admin/teachers' },
   { value: 'premium', label: 'Premium', description: 'Estudiante con suscripción' },
+  { value: 'student_premium', label: 'Student Premium', description: 'Estudiante premium (mismo acceso visual que Premium)' },
   { value: 'free', label: 'Free', description: 'Estudiante sin suscripción' },
 ]
 
@@ -17,6 +18,7 @@ const ROLE_BADGE: Record<string, string> = {
   admin: 'bg-primary/15 text-primary border-primary/30',
   teacher: 'bg-green-500/15 text-green-500 border-green-500/30',
   premium: 'bg-amber-500/15 text-amber-500 border-amber-500/30',
+  student_premium: 'bg-amber-500/15 text-amber-500 border-amber-500/30',
   free: 'bg-foreground/10 text-foreground/60 border-border',
   student: 'bg-foreground/10 text-foreground/60 border-border',
 }
@@ -25,6 +27,7 @@ const ROLE_LABEL: Record<string, string> = {
   admin: 'Admin',
   teacher: 'Teacher',
   premium: 'Premium',
+  student_premium: 'Student Premium',
   free: 'Free',
   student: 'Free',
 }

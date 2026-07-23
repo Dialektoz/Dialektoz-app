@@ -6,8 +6,7 @@ import MobileBottomNav from '@/components/layout/MobileBottomNav'
 import { createClient } from '@/utils/supabase/server'
 import { ArrowLeft, Clock } from 'lucide-react'
 import { notFound } from 'next/navigation'
-import LessonRenderer from '@/components/learn/LessonRenderer'
-import type { BlockData } from '@/components/editor/LessonBuilder'
+import LessonExperience from '@/components/learn/LessonExperience'
 
 export default async function LessonViewPage({
   params,
@@ -16,6 +15,9 @@ export default async function LessonViewPage({
 }) {
   const { code, lessonId } = await params
   const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   const { data: lesson } = await supabase
     .from('lessons')
@@ -25,7 +27,32 @@ export default async function LessonViewPage({
 
   if (!lesson || !lesson.published) notFound()
 
-  const blocks: BlockData[] = Array.isArray(lesson.content) ? lesson.content : []
+  // Sibling lessons (for prev/next navigation).
+  const { data: siblings } = await supabase
+    .from('lessons')
+    .select('id')
+    .eq('level_id', lesson.level_id)
+    .eq('published', true)
+    .order('order', { ascending: true })
+
+  const ids = (siblings ?? []).map((s) => s.id)
+  const idx = ids.indexOf(lesson.id)
+  const prevLessonId = idx > 0 ? ids[idx - 1] : null
+  const nextLessonId = idx >= 0 && idx < ids.length - 1 ? ids[idx + 1] : null
+
+  // Current progress status for this user + lesson.
+  let initialStatus: 'not_started' | 'in_progress' | 'completed' = 'not_started'
+  if (user) {
+    const { data: prog } = await supabase
+      .from('user_progress')
+      .select('status')
+      .eq('user_id', user.id)
+      .eq('lesson_id', lesson.id)
+      .maybeSingle()
+    if (prog?.status) initialStatus = prog.status
+  }
+
+  const hasContent = Array.isArray(lesson.content) && lesson.content.length > 0
 
   return (
     <div className="flex w-full h-[100dvh] bg-background overflow-hidden">
@@ -72,12 +99,19 @@ export default async function LessonViewPage({
             )}
           </div>
 
-          {blocks.length === 0 ? (
+          {!hasContent ? (
             <div className="text-center py-16 text-foreground/50">
               Esta lección aún no tiene contenido.
             </div>
           ) : (
-            <LessonRenderer blocks={blocks} />
+            <LessonExperience
+              blocks={lesson.content}
+              lessonId={lesson.id}
+              levelCode={code}
+              initialStatus={initialStatus}
+              prevLessonId={prevLessonId}
+              nextLessonId={nextLessonId}
+            />
           )}
         </div>
       </main>

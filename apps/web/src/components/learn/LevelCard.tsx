@@ -4,6 +4,7 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { Level } from '@/types/learning'
 import { Play } from 'lucide-react'
+import { cefrLabel } from '@/lib/learning'
 
 interface LevelCardProps {
   level: Level;
@@ -53,7 +54,7 @@ export default function LevelCard({ level, onClick }: LevelCardProps) {
         <div className="flex items-center gap-2 mb-4">
           {getSignalBars(level.code)}
           <span className="text-sm font-medium text-foreground/80">
-            {level.code} - Básico
+            {level.code} - {cefrLabel(level.code)}
           </span>
         </div>
         
@@ -100,7 +101,7 @@ export default function LevelCard({ level, onClick }: LevelCardProps) {
           </div>
 
           <button className="bg-primary hover:bg-accent text-black font-bold py-2 px-6 rounded-lg transition-all flex items-center gap-2 shadow-lg shadow-primary/20 active:scale-95 shrink-0">
-            <span>Continuar</span>
+            <span>{level.progressPercentage > 0 ? 'Continuar' : 'Empezar'}</span>
             <Play size={14} className="fill-black" />
           </button>
         </div>

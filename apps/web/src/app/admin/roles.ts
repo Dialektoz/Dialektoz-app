@@ -6,5 +6,5 @@
  * can only export async functions — exporting constants/types from there
  * triggers an "invalid-use-server-value" runtime error.
  */
-export const ASSIGNABLE_ROLES = ['admin', 'teacher', 'premium', 'free'] as const
+export const ASSIGNABLE_ROLES = ['admin', 'teacher', 'premium', 'student_premium', 'free'] as const
 export type AssignableRole = typeof ASSIGNABLE_ROLES[number]
