@@ -8,10 +8,12 @@ import type { BlockInstance } from '@/components/editor/blocks/types';
 import { normalizeBlocks, createBlock } from '@/components/editor/blocks/registry';
 import { BlockList } from '@/components/editor/blocks/BlockList';
 import { LessonAttemptProvider } from '@/components/learn/LessonAttempt';
-import { ArrowLeft, Save, Loader2, Check, CloudOff, Eye, Pencil, Clock } from 'lucide-react';
+import { QUIZ_EDITOR_TYPES } from '@/lib/exam/grading';
+import { ArrowLeft, Save, Loader2, Check, CloudOff, Eye, Pencil, Clock, BookOpen, ClipboardCheck } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
+type EditorTab = 'content' | 'quiz';
 
 export default function LessonEditorPage() {
   const router = useRouter();
@@ -33,6 +35,8 @@ export default function LessonEditorPage() {
   const [duration, setDuration] = useState<number | ''>('');
   const [published, setPublished] = useState(false);
   const [blocks, setBlocks] = useState<BlockInstance[]>([createBlock('heading')]);
+  const [quizBlocks, setQuizBlocks] = useState<BlockInstance[]>([]);
+  const [tab, setTab] = useState<EditorTab>('content');
   const [preview, setPreview] = useState(false);
   const [resolvedLevelCode, setResolvedLevelCode] = useState<string | null>(null);
 
@@ -48,7 +52,7 @@ export default function LessonEditorPage() {
       }
       const { data, error } = await supabase
         .from('lessons')
-        .select('title, content, skill_type, description, published, duration_minutes, level_id')
+        .select('title, content, quiz, skill_type, description, published, duration_minutes, level_id')
         .eq('id', lessonIdParam)
         .single();
 
@@ -62,6 +66,7 @@ export default function LessonEditorPage() {
         setPublished(!!data.published);
         const normalized = normalizeBlocks(data.content);
         if (normalized.length > 0) setBlocks(normalized);
+        setQuizBlocks(normalizeBlocks(data.quiz));
 
         if (data.level_id) {
           const { data: lvl } = await supabase.from('levels').select('code').eq('id', data.level_id).single();
@@ -83,12 +88,13 @@ export default function LessonEditorPage() {
     return {
       title: finalTitle,
       content: blocks,
+      quiz: quizBlocks,
       skill_type: skillType || null,
       description: description || null,
       duration_minutes: duration === '' ? null : Number(duration),
       published,
     };
-  }, [title, blocks, skillType, description, duration, published]);
+  }, [title, blocks, quizBlocks, skillType, description, duration, published]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -148,7 +154,7 @@ export default function LessonEditorPage() {
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, skillType, description, duration, published, blocks]);
+  }, [title, skillType, description, duration, published, blocks, quizBlocks]);
 
   return (
     <div className="py-6 px-6 lg:px-10 max-w-5xl mx-auto w-full">
@@ -229,9 +235,18 @@ export default function LessonEditorPage() {
                     {description && <p className="text-foreground/60 mt-3 text-lg">{description}</p>}
                   </div>
 
-                  <LessonAttemptProvider>
-                    <BlockList blocks={blocks} />
-                  </LessonAttemptProvider>
+                  <BlockList blocks={blocks} />
+
+                  {quizBlocks.length > 0 && (
+                    <div className="mt-10 pt-8 border-t-2 border-primary/20">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-primary mb-4">
+                        Evaluación de la lección
+                      </p>
+                      <LessonAttemptProvider>
+                        <BlockList blocks={quizBlocks} />
+                      </LessonAttemptProvider>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -266,18 +281,69 @@ export default function LessonEditorPage() {
                 </label>
               </div>
 
-              <div className="border-t border-border/50 mb-2 pt-6">
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Contenido de la Lección (Bloques)</h2>
+              {/* Section tabs: study material vs graded evaluation */}
+              <div className="border-t border-border/50 pt-6 mb-4">
+                <div className="flex gap-1 p-1 rounded-xl bg-card border border-border w-fit">
+                  <TabButton active={tab === 'content'} onClick={() => setTab('content')} icon={<BookOpen className="w-4 h-4" />}>
+                    Contenido
+                  </TabButton>
+                  <TabButton active={tab === 'quiz'} onClick={() => setTab('quiz')} icon={<ClipboardCheck className="w-4 h-4" />}>
+                    Evaluación
+                    <span className="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary/15 text-primary tabular-nums">
+                      {quizBlocks.filter((b) => b.type !== 'heading' && b.type !== 'text').length}
+                    </span>
+                  </TabButton>
+                </div>
+                <p className="text-xs text-foreground/50 mt-2">
+                  {tab === 'content'
+                    ? 'Lo que el estudiante estudia. Puedes incluir actividades de práctica libre.'
+                    : 'Preguntas que el estudiante debe responder para completar la lección. Todas cuentan para el examen de certificación del nivel.'}
+                </p>
               </div>
 
               <div className="min-h-[500px]">
-                <LessonBuilder initialBlocks={blocks} onChange={setBlocks} />
+                {tab === 'content' ? (
+                  <LessonBuilder key="content" initialBlocks={blocks} onChange={setBlocks} />
+                ) : (
+                  <LessonBuilder
+                    key="quiz"
+                    initialBlocks={quizBlocks}
+                    onChange={setQuizBlocks}
+                    allowedTypes={QUIZ_EDITOR_TYPES}
+                    emptyLabel="Añadir la primera pregunta"
+                  />
+                )}
               </div>
             </>
           )}
         </>
       )}
     </div>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  icon,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-colors ${
+        active ? 'bg-primary text-primary-foreground' : 'text-foreground/60 hover:text-foreground hover:bg-muted'
+      }`}
+    >
+      {icon}
+      {children}
+    </button>
   );
 }
 

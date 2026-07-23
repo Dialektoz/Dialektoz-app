@@ -11,9 +11,17 @@ export type { BlockInstance } from './blocks/types';
 interface LessonBuilderProps {
   initialBlocks?: BlockInstance[];
   onChange?: (blocks: BlockInstance[]) => void;
+  /** Restrict which block types can be added (used by the quiz tab). */
+  allowedTypes?: string[];
+  emptyLabel?: string;
 }
 
-export function LessonBuilder({ initialBlocks = [], onChange }: LessonBuilderProps) {
+export function LessonBuilder({
+  initialBlocks = [],
+  onChange,
+  allowedTypes,
+  emptyLabel = 'Añadir el primer bloque',
+}: LessonBuilderProps) {
   const [blocks, setBlocks] = useState<BlockInstance[]>(
     initialBlocks.length > 0 ? initialBlocks : [createBlock('heading')]
   );
@@ -23,5 +31,7 @@ export function LessonBuilder({ initialBlocks = [], onChange }: LessonBuilderPro
     onChange?.(next);
   };
 
-  return <BlockCanvas blocks={blocks} onChange={commit} emptyLabel="Añadir el primer bloque" />;
+  return (
+    <BlockCanvas blocks={blocks} onChange={commit} emptyLabel={emptyLabel} allowedTypes={allowedTypes} />
+  );
 }

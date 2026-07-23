@@ -22,7 +22,7 @@ export default async function LessonViewPage({
 
   const { data: lesson } = await supabase
     .from('lessons')
-    .select('id, title, description, skill_type, duration_minutes, content, published, level_id')
+    .select('id, title, description, skill_type, duration_minutes, content, quiz, published, level_id')
     .eq('id', lessonId)
     .single()
 
@@ -113,6 +113,7 @@ export default async function LessonViewPage({
           ) : (
             <LessonExperience
               blocks={lesson.content}
+              quiz={lesson.quiz}
               lessonId={lesson.id}
               levelCode={code}
               initialStatus={initialStatus}

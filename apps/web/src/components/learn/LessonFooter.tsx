@@ -13,15 +13,20 @@ interface LessonFooterProps {
   initialStatus: 'not_started' | 'in_progress' | 'completed';
   prevLessonId: string | null;
   nextLessonId: string | null;
+  /** When the lesson has an evaluation, it must be answered to complete it. */
+  requiresQuiz?: boolean;
 }
 
-export default function LessonFooter({ lessonId, levelCode, initialStatus, prevLessonId, nextLessonId }: LessonFooterProps) {
+export default function LessonFooter({ lessonId, levelCode, initialStatus, prevLessonId, nextLessonId, requiresQuiz = false }: LessonFooterProps) {
   const router = useRouter();
   const [completed, setCompleted] = useState(initialStatus === 'completed');
   const [saving, setSaving] = useState(false);
   const attempt = useAttempt();
   const score = attempt ? scoreOf(attempt.results) : null;
   const hasActivities = !!score && score.total > 0;
+  // Evaluation is mandatory: every question must be answered before completing.
+  const pending = hasActivities ? score!.total - score!.answered : 0;
+  const blockedByQuiz = requiresQuiz && pending > 0;
 
   // Mark the lesson as in-progress on first view (never downgrade a completed one).
   // Progress is written server-side via record_progress(): user_progress is
@@ -78,16 +83,23 @@ export default function LessonFooter({ lessonId, levelCode, initialStatus, prevL
         )}
         <button
           onClick={markComplete}
-          disabled={saving || completed}
+          disabled={saving || completed || blockedByQuiz}
+          title={blockedByQuiz ? 'Responde toda la evaluación para completar la lección' : undefined}
           className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-colors ${
             completed
               ? 'bg-green-500/15 text-green-600 cursor-default'
-              : 'bg-primary text-primary-foreground hover:bg-primary/90'
+              : 'bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50'
           }`}
         >
           {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : completed ? <CheckCircle2 className="w-5 h-5" /> : <Circle className="w-5 h-5" />}
           {completed ? 'Lección completada' : 'Marcar como completada'}
         </button>
+
+        {blockedByQuiz && (
+          <p className="text-xs text-foreground/60 -mt-1">
+            Te falta{pending === 1 ? '' : 'n'} <b>{pending}</b> pregunta{pending === 1 ? '' : 's'} de la evaluación.
+          </p>
+        )}
 
         <div className="flex items-center justify-between w-full">
           {prevLessonId ? (

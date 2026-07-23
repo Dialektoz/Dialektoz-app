@@ -55,6 +55,7 @@ export async function updateSession(request: NextRequest) {
     !request.nextUrl.pathname.startsWith('/auth') &&
     !request.nextUrl.pathname.startsWith('/forgot-password') &&
     !request.nextUrl.pathname.startsWith('/privacy') &&
+    !request.nextUrl.pathname.startsWith('/certificate/') && // public verification
     request.nextUrl.pathname !== '/' && // root landing
     request.nextUrl.pathname !== '/signup' // signup page
   ) {
@@ -69,6 +70,7 @@ export async function updateSession(request: NextRequest) {
     user &&
     !request.nextUrl.pathname.startsWith('/auth') &&
     !request.nextUrl.pathname.startsWith('/privacy') &&
+    !request.nextUrl.pathname.startsWith('/certificate/') &&
     request.nextUrl.pathname !== '/'
   ) {
     const { data: profile } = await supabase

@@ -15,6 +15,8 @@ interface BlockCanvasProps {
   nested?: boolean;
   /** Text for the empty-state button. */
   emptyLabel?: string;
+  /** Restrict which block types can be added (used by the quiz tab). */
+  allowedTypes?: string[];
 }
 
 /**
@@ -22,7 +24,7 @@ interface BlockCanvasProps {
  * level (via LessonBuilder) and recursively inside container blocks
  * (columns, sections), which is what enables nested layouts.
  */
-export function BlockCanvas({ blocks, onChange, nested = false, emptyLabel = 'AÃ±adir bloque' }: BlockCanvasProps) {
+export function BlockCanvas({ blocks, onChange, nested = false, emptyLabel = 'AÃ±adir bloque', allowedTypes }: BlockCanvasProps) {
   const [addMenuIndex, setAddMenuIndex] = useState<number | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
@@ -106,6 +108,7 @@ export function BlockCanvas({ blocks, onChange, nested = false, emptyLabel = 'AÃ
               <div className="absolute inset-x-8 border-t border-dashed border-primary/20 opacity-0 group-hover/gap:opacity-100 transition-opacity" />
               <button
                 type="button"
+                data-add-block-toggle
                 onClick={() => setAddMenuIndex(addMenuIndex === index ? null : index)}
                 className="relative z-10 w-7 h-7 rounded-full bg-background border border-primary/60 text-primary flex items-center justify-center opacity-0 group-hover/gap:opacity-100 hover:scale-110 hover:bg-primary hover:text-primary-foreground transition-all shadow-sm"
                 aria-label="AÃ±adir bloque"
@@ -114,10 +117,11 @@ export function BlockCanvas({ blocks, onChange, nested = false, emptyLabel = 'AÃ
               </button>
               <AnimatePresence>
                 {addMenuIndex === index && (
-                  <>
-                    <div className="fixed inset-0 z-20" onClick={() => setAddMenuIndex(null)} />
-                    <AddBlockMenu onPick={(type) => addBlock(index, type)} />
-                  </>
+                  <AddBlockMenu
+                    onPick={(type) => addBlock(index, type)}
+                    onClose={() => setAddMenuIndex(null)}
+                    allowedTypes={allowedTypes}
+                  />
                 )}
               </AnimatePresence>
             </div>
@@ -129,6 +133,7 @@ export function BlockCanvas({ blocks, onChange, nested = false, emptyLabel = 'AÃ
         <div className="relative">
           <button
             type="button"
+            data-add-block-toggle
             onClick={() => setAddMenuIndex(addMenuIndex === -1 ? null : -1)}
             className={`w-full ${nested ? 'py-5' : 'py-8'} rounded-xl border-2 border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary transition-colors flex items-center justify-center gap-2`}
           >
@@ -136,10 +141,11 @@ export function BlockCanvas({ blocks, onChange, nested = false, emptyLabel = 'AÃ
           </button>
           <AnimatePresence>
             {addMenuIndex === -1 && (
-              <>
-                <div className="fixed inset-0 z-20" onClick={() => setAddMenuIndex(null)} />
-                <AddBlockMenu onPick={(type) => addBlock(-1, type)} />
-              </>
+              <AddBlockMenu
+                onPick={(type) => addBlock(-1, type)}
+                onClose={() => setAddMenuIndex(null)}
+                allowedTypes={allowedTypes}
+              />
             )}
           </AnimatePresence>
         </div>
