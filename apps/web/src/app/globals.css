@@ -93,3 +93,28 @@ html {
 ::-webkit-scrollbar-thumb:hover {
   background: #555555;
 }
+
+/* Tailwind v4's preflight gives buttons `cursor: default`. Restore the
+   expected pointer on every interactive control, app-wide.
+   Kept in @layer base so utility classes (cursor-grab, cursor-crosshair,
+   cursor-not-allowed, …) still win where a component sets them. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  input[type="button"]:not(:disabled),
+  input[type="submit"]:not(:disabled),
+  input[type="reset"]:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  select:not(:disabled),
+  label[for],
+  summary {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  select:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
