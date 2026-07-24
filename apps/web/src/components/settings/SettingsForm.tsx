@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { UploadDropzone } from '@/components/editor/UploadDropzone';
+import { deleteUpload } from '@/lib/useR2Upload';
 import { Loader2, Check, AlertCircle, KeyRound, Trophy, Globe } from 'lucide-react';
 
 export interface ProfileValues {
@@ -82,6 +83,10 @@ export default function SettingsForm({ initial }: { initial: ProfileValues }) {
       setState('error');
       setMessage(error.message);
       return;
+    }
+    // Cleanup: if the avatar was removed or replaced, delete the old one from R2.
+    if (initial.avatar_url && initial.avatar_url !== form.avatar_url) {
+      void deleteUpload(initial.avatar_url);
     }
     setState('saved');
     setMessage('Cambios guardados');

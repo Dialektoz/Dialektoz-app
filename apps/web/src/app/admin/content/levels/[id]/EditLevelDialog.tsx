@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { Button } from '@/components/ui/button';
 import { UploadDropzone } from '@/components/editor/UploadDropzone';
+import { deleteUpload } from '@/lib/useR2Upload';
 import { Pencil, Loader2, X } from 'lucide-react';
 
 interface EditLevelDialogProps {
@@ -57,6 +58,10 @@ export default function EditLevelDialog({ level }: EditLevelDialogProps) {
       if (error.code === '23505') alert(`Ya existe un nivel con el código "${form.code}".`);
       else alert('Error al guardar: ' + error.message);
       return;
+    }
+    // Cleanup: if the cover was removed or replaced, delete the old one from R2.
+    if (level.icon_url && level.icon_url !== form.icon_url) {
+      void deleteUpload(level.icon_url);
     }
     setOpen(false);
     if (codeChanged) router.replace(`/admin/content/levels/${form.code.toUpperCase().trim()}`);

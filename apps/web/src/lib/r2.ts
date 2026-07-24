@@ -44,6 +44,28 @@ export function publicUrl(key: string): string {
   return `${(R2_PUBLIC_BASE_URL || '').replace(/\/$/, '')}/${key}`;
 }
 
+/** Extract the object key from a public R2 URL, or null if it isn't one of ours. */
+export function keyFromPublicUrl(url: string): string | null {
+  const base = (R2_PUBLIC_BASE_URL || '').replace(/\/$/, '');
+  if (!base || typeof url !== 'string' || !url.startsWith(base + '/')) return null;
+  const key = url.slice(base.length + 1);
+  return key || null;
+}
+
+/** Delete an object from R2. Returns true on success (404 counts as done). */
+export async function deleteObject(key: string): Promise<boolean> {
+  if (!isR2Configured()) return false;
+  const client = new AwsClient({
+    accessKeyId: R2_ACCESS_KEY_ID!,
+    secretAccessKey: R2_SECRET_ACCESS_KEY!,
+    service: 's3',
+    region: 'auto',
+  });
+  const url = `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${R2_BUCKET}/${key}`;
+  const res = await client.fetch(url, { method: 'DELETE' });
+  return res.ok || res.status === 404;
+}
+
 /** Generate a presigned PUT url the browser can upload to for `expiresIn` seconds. */
 export async function presignPut(key: string, expiresIn = 3600): Promise<string> {
   const client = new AwsClient({

@@ -44,6 +44,23 @@ export function useR2Upload() {
   return { upload, uploading, progress, error };
 }
 
+/**
+ * Best-effort delete of an R2 object by its public URL. Safe to call with an
+ * external/empty URL (the server skips those). Never throws.
+ */
+export async function deleteUpload(url: string | null | undefined): Promise<void> {
+  if (!url) return;
+  try {
+    await fetch('/api/uploads/delete', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+  } catch {
+    // best-effort cleanup; ignore failures
+  }
+}
+
 function putWithProgress(url: string, file: File, onProgress: (pct: number) => void): Promise<void> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
