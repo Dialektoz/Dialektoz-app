@@ -24,6 +24,9 @@ export default function LandingHeader() {
         <Link href="#como-funciona" className="text-foreground/70 hover:text-primary transition-colors whitespace-nowrap">
           Cómo Funciona
         </Link>
+        <Link href="/verify" className="text-foreground/70 hover:text-primary transition-colors whitespace-nowrap">
+          Verificar Certificado
+        </Link>
       </nav>
 
       {/* 3. CTA Button (Right) */}
