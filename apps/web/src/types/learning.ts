@@ -28,6 +28,7 @@ export interface Level {
   creatorName: string;    // "Hadrien Lacroix"
   creatorRole: string;    // "Curriculum Manager"
   creatorAvatar?: string; // URL to avatar image
+  iconUrl?: string;       // Level cover/icon (R2)
   progressPercentage: number; // 0 - 100
   skills: Skill[];
   bucket: LevelBucket;    // Highlighted requirements for the level

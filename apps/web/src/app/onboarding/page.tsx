@@ -1,24 +1,47 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { Loader2 } from 'lucide-react'
+import { isAdult, maxBirthDateFor18 } from '@/lib/age'
 
 export default function OnboardingPage() {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [phone, setPhone] = useState('')
+  const [birthDate, setBirthDate] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
+
   const router = useRouter()
   const supabase = createClient()
 
+  // Prefill the birth date if it was already captured at signup.
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data } = await supabase.from('profiles').select('birth_date').eq('id', user.id).single()
+      if (data?.birth_date) setBirthDate(data.birth_date)
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
     setError(null)
+
+    if (!birthDate) {
+      setError('Ingresa tu fecha de nacimiento.')
+      return
+    }
+    if (!isAdult(birthDate)) {
+      setError('Debes ser mayor de 18 años para usar Dialektoz.')
+      return
+    }
+
+    setIsLoading(true)
 
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -34,6 +57,7 @@ export default function OnboardingPage() {
         first_name: firstName,
         last_name: lastName,
         phone: phone,
+        birth_date: birthDate,
         onboarding_completed: true,
       })
       .eq('id', user.id)
@@ -48,6 +72,7 @@ export default function OnboardingPage() {
           first_name: firstName,
           last_name: lastName,
           phone: phone,
+          birth_date: birthDate,
           onboarding_completed: true,
         })
       
@@ -102,10 +127,22 @@ export default function OnboardingPage() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-bold">Número de Teléfono</label>
+            <label className="text-sm font-bold">Fecha de nacimiento</label>
+            <input
+              type="date"
+              required
+              value={birthDate}
+              onChange={(e) => setBirthDate(e.target.value)}
+              max={maxBirthDateFor18()}
+              className="w-full bg-background/50 border border-border/60 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+            />
+            <p className="text-[11px] text-foreground/40">Debes ser mayor de 18 años.</p>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-bold">Número de Teléfono <span className="text-foreground/40 font-normal">(opcional)</span></label>
             <input
               type="tel"
-              required
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               className="w-full bg-background/50 border border-border/60 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"

@@ -28,16 +28,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'El archivo supera el límite de 200 MB' }, { status: 413 });
   }
 
-  // Anyone signed in may upload their own avatar; lesson media is staff-only.
+  // Anyone signed in may upload their own avatar; content media is staff-only.
   const isAvatar = folder === 'avatars';
-  if (!isAvatar) {
+  let keyFolder: string;
+  if (isAvatar) {
+    keyFolder = `avatars/${user.id}`;
+  } else {
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-    if (!profile || !['admin', 'teacher'].includes(profile.role)) {
+    if (!profile || !['superadmin', 'admin', 'teacher'].includes(profile.role)) {
       return NextResponse.json({ error: 'Sin permiso para subir archivos' }, { status: 403 });
     }
+    // Only these content folders are allowed for staff uploads.
+    keyFolder = folder === 'levels' ? 'levels' : 'lessons';
   }
 
-  const key = buildKey(filename, isAvatar ? `avatars/${user.id}` : 'lessons');
+  const key = buildKey(filename, keyFolder);
   const uploadUrl = await presignPut(key);
 
   return NextResponse.json({ uploadUrl, publicUrl: publicUrl(key), key });

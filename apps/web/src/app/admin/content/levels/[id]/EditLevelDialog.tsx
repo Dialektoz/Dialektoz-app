@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { Button } from '@/components/ui/button';
+import { UploadDropzone } from '@/components/editor/UploadDropzone';
 import { Pencil, Loader2, X } from 'lucide-react';
 
 interface EditLevelDialogProps {
@@ -13,20 +14,23 @@ interface EditLevelDialogProps {
     title: string;
     description: string | null;
     order_index: number | null;
+    icon_url: string | null;
   };
 }
 
-const CODES = ['A1', 'A2', 'B1', 'B2', 'C1'];
+const CODES = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
 export default function EditLevelDialog({ level }: EditLevelDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isCustom, setIsCustom] = useState(!CODES.includes(level.code));
   const [form, setForm] = useState({
     code: level.code,
     title: level.title,
     description: level.description ?? '',
     order_index: level.order_index ?? 0,
+    icon_url: level.icon_url ?? '',
   });
 
   const save = async () => {
@@ -44,6 +48,7 @@ export default function EditLevelDialog({ level }: EditLevelDialogProps) {
         title: form.title.trim(),
         description: form.description.trim() || null,
         order_index: Number(form.order_index) || 0,
+        icon_url: form.icon_url || null,
       })
       .eq('id', level.id);
     setSaving(false);
@@ -76,9 +81,26 @@ export default function EditLevelDialog({ level }: EditLevelDialogProps) {
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">Código</label>
-                  <select value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} className="w-full bg-background border border-border p-2.5 rounded-lg outline-none focus:border-primary font-bold text-lg cursor-pointer">
+                  <select
+                    value={isCustom ? '__custom__' : form.code}
+                    onChange={(e) => {
+                      if (e.target.value === '__custom__') { setIsCustom(true); setForm({ ...form, code: '' }); }
+                      else { setIsCustom(false); setForm({ ...form, code: e.target.value }); }
+                    }}
+                    className="w-full bg-background border border-border p-2.5 rounded-lg outline-none focus:border-primary font-bold text-lg cursor-pointer"
+                  >
                     {CODES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    <option value="__custom__">Otro…</option>
                   </select>
+                  {isCustom && (
+                    <input
+                      value={form.code}
+                      onChange={(e) => setForm({ ...form, code: e.target.value })}
+                      placeholder="Personalizado"
+                      maxLength={12}
+                      className="w-full mt-2 bg-background border border-border p-2.5 rounded-lg outline-none focus:border-primary font-bold uppercase"
+                    />
+                  )}
                 </div>
                 <div className="col-span-2">
                   <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">Título</label>
@@ -89,6 +111,21 @@ export default function EditLevelDialog({ level }: EditLevelDialogProps) {
               <div>
                 <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">Descripción</label>
                 <textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full bg-background border border-border p-3 rounded-lg outline-none focus:border-primary resize-none" />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">Portada / Ícono</label>
+                {form.icon_url ? (
+                  <div className="flex items-center gap-4 rounded-xl border border-border bg-muted/10 p-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={form.icon_url} alt="Portada" className="w-20 h-20 rounded-lg object-cover border border-border" />
+                    <button type="button" onClick={() => setForm({ ...form, icon_url: '' })} className="text-sm text-muted-foreground hover:text-destructive">
+                      Quitar imagen
+                    </button>
+                  </div>
+                ) : (
+                  <UploadDropzone accept="image/*" folder="levels" label="Sube una portada" onUploaded={(url) => setForm((f) => ({ ...f, icon_url: url }))} />
+                )}
               </div>
 
               <div className="w-32">

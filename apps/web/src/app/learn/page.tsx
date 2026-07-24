@@ -20,7 +20,7 @@ export default async function LearnPage() {
 
   const { data } = await supabase
     .from('levels')
-    .select('id, code, title, description, creator_name, order_index')
+    .select('id, code, title, description, creator_name, order_index, icon_url')
     .eq('published', true)
     .order('order_index', { ascending: true });
 
@@ -34,6 +34,7 @@ export default async function LearnPage() {
     description: row.description || '',
     creatorName: row.creator_name || 'Equipo Dialektoz',
     creatorRole: 'Instructor',
+    iconUrl: row.icon_url ?? undefined,
     progressPercentage: progress.get(row.id)?.percent ?? 0,
     skills: [],
     bucket: { grammar: [], vocabulary: [], expressions: [] }

@@ -12,7 +12,7 @@ export default function AdminSidebar({ role }: { role?: string | null }) {
   const router = useRouter();
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const isAdmin = role === 'admin';
+  const isAdmin = role === 'admin' || role === 'superadmin';
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

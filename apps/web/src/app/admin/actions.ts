@@ -3,9 +3,10 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/utils/supabase/server'
 import { createAdminClient } from '@/utils/supabase/admin'
-import { ASSIGNABLE_ROLES, type AssignableRole } from './roles'
+import { isRole, canAssignRole, type Role } from './roles'
 
-async function verifyAdmin() {
+/** Returns the current user's id + role, or throws if not staff-admin. */
+async function requireActor(): Promise<{ id: string; role: Role }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('No autenticado')
@@ -16,7 +17,13 @@ async function verifyAdmin() {
     .eq('id', user.id)
     .single()
 
-  if (profile?.role !== 'admin') throw new Error('Acceso denegado')
+  return { id: user.id, role: (profile?.role as Role) ?? 'free' }
+}
+
+/** admin + superadmin may manage teachers/users. */
+async function verifyAdmin() {
+  const actor = await requireActor()
+  if (actor.role !== 'admin' && actor.role !== 'superadmin') throw new Error('Acceso denegado')
 }
 
 /**
@@ -140,12 +147,15 @@ export async function resendTeacherInvite(userId: string): Promise<{ success?: b
  */
 export async function setUserRole(
   userId: string,
-  newRole: AssignableRole,
+  newRole: Role,
 ): Promise<{ success?: boolean; error?: string }> {
-  await verifyAdmin()
+  const actor = await requireActor()
 
-  if (!ASSIGNABLE_ROLES.includes(newRole)) {
+  if (!isRole(newRole)) {
     return { error: `Rol inválido: ${newRole}` }
+  }
+  if (actor.id === userId) {
+    return { error: 'No puedes cambiar tu propio rol.' }
   }
 
   const adminClient = createAdminClient()
@@ -162,6 +172,11 @@ export async function setUserRole(
 
   if (existing.role === newRole) {
     return { error: 'El usuario ya tiene ese rol.' }
+  }
+
+  // Enforce the hierarchy (matches the client-side UI restrictions).
+  if (!canAssignRole(actor.role, existing.role ?? 'free', newRole)) {
+    return { error: 'No tienes permiso para asignar ese rol a este usuario.' }
   }
 
   const { error } = await adminClient

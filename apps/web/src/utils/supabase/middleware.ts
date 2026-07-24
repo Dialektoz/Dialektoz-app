@@ -100,6 +100,7 @@ export async function updateSession(request: NextRequest) {
       if (
         request.nextUrl.pathname.startsWith('/admin') &&
         profile.role !== 'admin' &&
+        profile.role !== 'superadmin' &&
         profile.role !== 'teacher'
       ) {
         const url = request.nextUrl.clone()

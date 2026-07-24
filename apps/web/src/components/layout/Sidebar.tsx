@@ -27,20 +27,36 @@ export default function Sidebar() {
   const toggleCollapsed = () => setSidebarCollapsed(!isCollapsed);
 
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchRole = async () => {
+    const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       const { data } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, display_name, full_name, first_name, email')
         .eq('id', user.id)
         .single();
       if (data?.role) setUserRole(data.role);
+      const name =
+        data?.display_name?.trim() ||
+        data?.full_name?.trim() ||
+        data?.first_name?.trim() ||
+        data?.email?.split('@')[0] ||
+        'Estudiante';
+      setUserName(name);
     };
-    fetchRole();
+    fetchProfile();
   }, []);
+
+  const roleLabel =
+    userRole === 'superadmin' ? 'Super Admin'
+    : userRole === 'admin' ? 'Administrador'
+    : userRole === 'teacher' ? 'Profesor'
+    : userRole === 'premium' || userRole === 'student_premium' ? 'Estudiante Premium'
+    : 'Estudiante';
+  const isStaff = userRole === 'admin' || userRole === 'superadmin' || userRole === 'teacher';
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -86,9 +102,9 @@ export default function Sidebar() {
             <UserIcon /> 
           </div>
           {!isCollapsed && (
-            <div className="overflow-hidden whitespace-nowrap opacity-100 transition-opacity duration-300">
-              <p className="font-bold text-foreground text-sm">Estudiante Élite</p>
-              <p className="text-xs text-foreground/60 font-medium">Nivel B2 - Avanzado</p>
+            <div className="overflow-hidden whitespace-nowrap opacity-100 transition-opacity duration-300 min-w-0">
+              <p className="font-bold text-foreground text-sm truncate">{userName ?? '…'}</p>
+              <p className="text-xs text-foreground/60 font-medium">{roleLabel}</p>
             </div>
           )}
         </div>
@@ -98,8 +114,14 @@ export default function Sidebar() {
           <NavItem href="/progress" icon={<BarChart2 size={18} />} label="Mi Progreso" active={pathname === '/progress'} collapsed={isCollapsed} />
           <NavItem href="/streak" icon={<Flame size={18} />} label="Racha Diaria" active={pathname === '/streak'} collapsed={isCollapsed} />
           <NavItem href="/leaderboard" icon={<Award size={18} />} label="Clasificación" active={pathname === '/leaderboard'} collapsed={isCollapsed} />
-          {userRole === 'admin' && (
-            <NavItem href="/admin" icon={<ShieldCheck size={18} />} label="Administración" active={pathname.startsWith('/admin')} collapsed={isCollapsed} />
+          {isStaff && (
+            <NavItem
+              href={userRole === 'teacher' ? '/admin/content' : '/admin'}
+              icon={<ShieldCheck size={18} />}
+              label={userRole === 'teacher' ? 'Gestionar contenido' : 'Administración'}
+              active={pathname.startsWith('/admin')}
+              collapsed={isCollapsed}
+            />
           )}
         </nav>
       </div>

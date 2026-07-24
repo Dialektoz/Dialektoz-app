@@ -63,6 +63,8 @@ function renderNode(node: JSONContent, key: number): ReactNode {
         else if (mark.type === 'italic') el = <em key={key}>{el}</em>;
         else if (mark.type === 'underline') el = <u key={key}>{el}</u>;
         else if (mark.type === 'strike') el = <s key={key}>{el}</s>;
+        else if (mark.type === 'textStyle' && typeof mark.attrs?.color === 'string')
+          el = <span key={key} style={{ color: mark.attrs.color }}>{el}</span>;
         else if (mark.type === 'code') el = <code key={key} className="bg-muted px-1.5 py-0.5 rounded text-sm">{el}</code>;
         else if (mark.type === 'link')
           el = (

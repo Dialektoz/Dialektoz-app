@@ -14,7 +14,7 @@ export default async function LevelAdminDashboard({ params }: { params: Promise<
 
   const { data: levelData, error: levelError } = await supabase
     .from('levels')
-    .select('id, title, code, description, order_index, published')
+    .select('id, title, code, description, order_index, published, icon_url')
     .eq('code', levelCode)
     .single();
 
@@ -56,6 +56,7 @@ export default async function LevelAdminDashboard({ params }: { params: Promise<
                 title: levelData.title,
                 description: levelData.description,
                 order_index: levelData.order_index,
+                icon_url: levelData.icon_url,
               }}
             />
             <PublishLevelToggle levelId={levelData.id} initialPublished={!!levelData.published} />

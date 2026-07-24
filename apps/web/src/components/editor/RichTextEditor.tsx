@@ -3,8 +3,19 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import type { Editor, JSONContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { Bold, Italic, Strikethrough, List, ListOrdered, Heading2 } from 'lucide-react';
+import { TextStyle } from '@tiptap/extension-text-style';
+import { Color } from '@tiptap/extension-color';
+import { Bold, Italic, Strikethrough, List, ListOrdered, Heading2, Ban } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+
+// Curated palette — readable on the dark theme, no free color picker.
+const TEXT_COLORS = [
+  { name: 'Dorado', value: '#D4AF37' },
+  { name: 'Rojo', value: '#F87171' },
+  { name: 'Verde', value: '#4ADE80' },
+  { name: 'Azul', value: '#60A5FA' },
+  { name: 'Morado', value: '#C084FC' },
+];
 
 interface RichTextEditorProps {
   content: JSONContent | null;
@@ -72,13 +83,37 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       >
         <ListOrdered className="w-4 h-4" />
       </Button>
+
+      <div className="w-px h-6 mx-1 bg-border self-center" />
+      <div className="flex items-center gap-1">
+        {TEXT_COLORS.map((c) => (
+          <button
+            key={c.value}
+            type="button"
+            title={`Color: ${c.name}`}
+            onClick={() => editor.chain().focus().setColor(c.value).run()}
+            className={`w-5 h-5 rounded-full border transition-transform hover:scale-110 ${
+              editor.isActive('textStyle', { color: c.value }) ? 'ring-2 ring-offset-1 ring-offset-background ring-foreground/40' : 'border-border'
+            }`}
+            style={{ backgroundColor: c.value }}
+          />
+        ))}
+        <Button
+          variant="ghost"
+          size="icon"
+          title="Quitar color"
+          onClick={() => editor.chain().focus().unsetColor().run()}
+        >
+          <Ban className="w-4 h-4" />
+        </Button>
+      </div>
     </div>
   );
 };
 
 export const RichTextEditor = ({ content, onChange, editable = true }: RichTextEditorProps) => {
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [StarterKit, TextStyle, Color],
     content: content || {},
     editable,
     immediatelyRender: false,
@@ -88,7 +123,10 @@ export const RichTextEditor = ({ content, onChange, editable = true }: RichTextE
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl prose-invert mx-auto focus:outline-none min-h-[200px] border-none p-4 w-full max-w-full text-foreground',
+        // Only `prose prose-invert` (+ size). The responsive `sm:prose`/`lg:prose-lg`
+        // variants re-declared the body color inside their media queries and
+        // overrode the dark-theme inversion, leaving text dark on desktop.
+        class: 'prose prose-invert prose-sm max-w-none focus:outline-none min-h-[200px] p-4 w-full text-foreground',
       },
     },
   });

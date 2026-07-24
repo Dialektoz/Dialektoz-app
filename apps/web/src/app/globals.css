@@ -118,3 +118,23 @@ html {
     cursor: not-allowed;
   }
 }
+
+/* TipTap editor: Tailwind Typography's responsive `prose` size variants
+   re-declare the body color and override `prose-invert`, leaving the text
+   dark on the dark theme. Force the editable surface to the foreground color.
+   Inline color spans (the color palette) still win via inline style. */
+.ProseMirror,
+.ProseMirror p,
+.ProseMirror li,
+.ProseMirror h1,
+.ProseMirror h2,
+.ProseMirror h3,
+.ProseMirror strong,
+.ProseMirror em,
+.ProseMirror blockquote {
+  color: var(--foreground);
+}
+
+.ProseMirror :where(a) {
+  color: var(--primary);
+}

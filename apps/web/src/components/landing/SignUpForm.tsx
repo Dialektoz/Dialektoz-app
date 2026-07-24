@@ -5,20 +5,37 @@ import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { isAdult, maxBirthDateFor18 } from '@/lib/age'
 
 export default function SignUpForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [birthDate, setBirthDate] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
+
   const router = useRouter()
   const supabase = createClient()
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
+    if (!birthDate) {
+      setError('Ingresa tu fecha de nacimiento.')
+      return
+    }
+    if (!isAdult(birthDate)) {
+      setError('Debes ser mayor de 18 años para registrarte.')
+      return
+    }
+
+    if (!acceptedTerms) {
+      setError('Debes aceptar los Términos y la Política de Privacidad para continuar.')
+      return
+    }
+
     if (password.length < 8) {
       setError('La contraseña debe tener al menos 8 caracteres.')
       return
@@ -43,7 +60,10 @@ export default function SignUpForm() {
       setIsLoading(false)
     } else if (data.session) {
       router.refresh()
-      
+
+      // Persist the age we just validated (best-effort; onboarding also captures it).
+      await supabase.from('profiles').update({ birth_date: birthDate }).eq('id', data.session.user.id)
+
       const { data: profile } = await supabase
         .from('profiles')
         .select('onboarding_completed')
@@ -135,6 +155,19 @@ export default function SignUpForm() {
         </div>
 
         <div className="space-y-1.5">
+          <label className="text-sm font-bold text-foreground">Fecha de nacimiento</label>
+          <input
+            type="date"
+            value={birthDate}
+            onChange={(e) => setBirthDate(e.target.value)}
+            max={maxBirthDateFor18()}
+            required
+            className="w-full bg-background/50 border border-border/60 rounded-xl py-3 px-4 text-foreground placeholder:text-foreground/30 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+          />
+          <p className="text-[11px] text-foreground/40">Debes ser mayor de 18 años para registrarte.</p>
+        </div>
+
+        <div className="space-y-1.5">
           <label className="text-sm font-bold text-foreground">Contraseña</label>
           <div className="relative">
             <input
@@ -155,6 +188,22 @@ export default function SignUpForm() {
           </div>
         </div>
 
+        <label className="flex items-start gap-2.5 cursor-pointer pt-1">
+          <input
+            type="checkbox"
+            checked={acceptedTerms}
+            onChange={(e) => setAcceptedTerms(e.target.checked)}
+            className="mt-0.5 size-4 accent-primary shrink-0 cursor-pointer"
+          />
+          <span className="text-xs text-foreground/60 leading-relaxed">
+            Acepto los{' '}
+            <Link href="/privacy" className="text-primary hover:underline" target="_blank">
+              Términos de Servicio y la Política de Privacidad
+            </Link>
+            .
+          </span>
+        </label>
+
         {error && (
           <div className="text-red-400 text-xs bg-red-400/10 p-3 rounded-lg border border-red-400/20">
             {error}
@@ -163,17 +212,12 @@ export default function SignUpForm() {
 
         <button
           type="submit"
-          disabled={isLoading}
-          className="w-full bg-primary hover:bg-secondary text-black font-extrabold py-3.5 rounded-xl transition-all shadow-lg shadow-primary/20 mt-4 flex items-center justify-center gap-2 cursor-pointer"
+          disabled={isLoading || !acceptedTerms}
+          className="w-full bg-primary hover:bg-secondary text-black font-extrabold py-3.5 rounded-xl transition-all shadow-lg shadow-primary/20 mt-2 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? <Loader2 className="animate-spin" size={20} /> : 'Empieza a Aprender Gratis'}
         </button>
       </form>
-
-      <p className="text-center text-xs text-foreground/40 mt-6 leading-relaxed">
-        Al continuar, aceptas nuestros <Link href="/terms" className="text-primary hover:underline">Términos de Uso</Link>, 
-        nuestra <Link href="/privacy" className="text-primary hover:underline">Política de Privacidad</Link> y el uso de la data en EEUU.
-      </p>
     </div>
   )
 }

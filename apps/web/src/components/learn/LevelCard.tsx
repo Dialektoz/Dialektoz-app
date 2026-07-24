@@ -42,11 +42,17 @@ export default function LevelCard({ level, onClick }: LevelCardProps) {
       className="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-lg hover:shadow-primary/10 hover:border-primary/30 transition-all flex flex-col group cursor-pointer relative"
       onClick={() => onClick && onClick(level.code)}
     >
+      {level.iconUrl && (
+        <div className="h-32 w-full overflow-hidden bg-muted">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={level.iconUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+        </div>
+      )}
       <div className="p-6 flex-1 flex flex-col pt-8">
         <span className="text-[10px] font-bold tracking-widest text-foreground/40 uppercase mb-3">
           NIVEL
         </span>
-        
+
         <h3 className="text-xl font-bold text-foreground mb-3 leading-tight group-hover:text-primary transition-colors">
           {level.title}
         </h3>

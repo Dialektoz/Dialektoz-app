@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { computeUnlocked, computeStreak } from './learning';
+import { parseSkills } from './skills';
 
 export type LessonState = 'completed' | 'current' | 'unlocked' | 'locked';
 
@@ -143,11 +144,14 @@ export async function getRoadmap(supabase: SupabaseClient, userId: string | null
   // Skill breakdown
   const skillMap = new Map<string, { total: number; completed: number }>();
   lessonRows.forEach((l) => {
-    const name = (l.skill_type || 'General').trim();
-    if (!skillMap.has(name)) skillMap.set(name, { total: 0, completed: 0 });
-    const entry = skillMap.get(name)!;
-    entry.total++;
-    if (completedIds.has(l.id)) entry.completed++;
+    const skills = parseSkills(l.skill_type);
+    const names = skills.length ? skills : ['General'];
+    for (const name of names) {
+      if (!skillMap.has(name)) skillMap.set(name, { total: 0, completed: 0 });
+      const entry = skillMap.get(name)!;
+      entry.total++;
+      if (completedIds.has(l.id)) entry.completed++;
+    }
   });
   const skills: SkillProgress[] = [...skillMap.entries()]
     .map(([name, v]) => ({ name, ...v, percent: v.total ? Math.round((v.completed / v.total) * 100) : 0 }))

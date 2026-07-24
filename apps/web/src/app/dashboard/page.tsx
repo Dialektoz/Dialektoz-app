@@ -6,6 +6,7 @@ import MobileHeader from "@/components/layout/MobileHeader";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import { createClient } from "@/utils/supabase/server";
 import { getDashboardData, getLeaderboard } from "@/lib/dashboard";
+import WelcomeTour from "@/components/dashboard/WelcomeTour";
 
 export const metadata = {
   title: "Dashboard | Dialektoz",
@@ -13,6 +14,7 @@ export const metadata = {
 };
 
 const roleLabels: Record<string, string> = {
+  superadmin: "Super Admin",
   admin: "Administrador",
   teacher: "Profesor",
   premium: "Estudiante Premium",
@@ -67,6 +69,7 @@ export default async function Dashboard() {
         currentUserId={user?.id ?? null}
       />
       <MobileBottomNav />
+      <WelcomeTour />
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, ArrowLeft } from "lucide-react";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import AddTeacherForm from "../AddTeacherForm";
 import RevokeButton from "./RevokeButton";
 import ResendInviteButton from "./ResendInviteButton";
@@ -39,12 +40,20 @@ export default async function TeachersPage() {
   const { data: profile } = user
     ? await supabase.from("profiles").select("role").eq("id", user.id).single()
     : { data: null };
-  if (profile?.role !== "admin") redirect("/admin");
+  const actorRole = profile?.role ?? "free";
+  if (actorRole !== "admin" && actorRole !== "superadmin") redirect("/admin");
 
   const teachers = await getTeachers();
 
   return (
     <div className="px-6 lg:px-10 py-8">
+      <Link
+        href="/admin"
+        className="inline-flex items-center gap-2 text-sm font-semibold text-foreground/60 hover:text-foreground mb-6 transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Volver a Administración
+      </Link>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground">Profesores</h1>
         <p className="text-foreground/60 text-sm mt-1">{teachers.length} profesores registrados</p>

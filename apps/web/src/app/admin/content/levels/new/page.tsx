@@ -3,18 +3,21 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Save, Loader2, ImagePlus } from 'lucide-react';
+import { ArrowLeft, Save, Loader2 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
+import { UploadDropzone } from '@/components/editor/UploadDropzone';
 
 export default function CreateLevelPage() {
   const router = useRouter();
   const supabase = createClient();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isCustom, setIsCustom] = useState(false);
   const [formData, setFormData] = useState({
     code: '',
     title: '',
     description: '',
+    icon_url: '' as string | null,
   });
 
   const handleSave = async (e: React.FormEvent) => {
@@ -32,6 +35,7 @@ export default function CreateLevelPage() {
         code: formData.code.toUpperCase().trim(),
         title: formData.title,
         description: formData.description,
+        icon_url: formData.icon_url || null,
       })
       .select()
       .single();
@@ -84,8 +88,16 @@ export default function CreateLevelPage() {
                 CÓDIGO (Ej: A1)
               </label>
               <select
-                value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                value={isCustom ? '__custom__' : formData.code}
+                onChange={(e) => {
+                  if (e.target.value === '__custom__') {
+                    setIsCustom(true);
+                    setFormData({ ...formData, code: '' });
+                  } else {
+                    setIsCustom(false);
+                    setFormData({ ...formData, code: e.target.value });
+                  }
+                }}
                 className="w-full bg-background border border-border p-3 rounded-xl outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 text-foreground uppercase font-bold text-xl appearance-none cursor-pointer"
                 required
               >
@@ -97,7 +109,19 @@ export default function CreateLevelPage() {
                 <option value="B1">B1</option>
                 <option value="B2">B2</option>
                 <option value="C1">C1</option>
+                <option value="C2">C2</option>
+                <option value="__custom__">Otro / Personalizado</option>
               </select>
+              {isCustom && (
+                <input
+                  type="text"
+                  value={formData.code}
+                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                  placeholder="Ej: KIDS, BIZ, A1+"
+                  maxLength={12}
+                  className="w-full mt-2 bg-background border border-border p-3 rounded-xl outline-none focus:border-primary text-foreground uppercase font-bold"
+                />
+              )}
             </div>
           </div>
           <div className="md:col-span-2 space-y-4">
@@ -130,14 +154,30 @@ export default function CreateLevelPage() {
           />
         </div>
 
-        <div className="mb-10 opacity-50 pointer-events-none">
+        <div className="mb-10">
           <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 block">
-            PORTADA O ICONO (PRÓXIMAMENTE)
+            PORTADA O ICONO DEL NIVEL
           </label>
-          <div className="border-2 border-dashed border-border rounded-xl p-8 flex flex-col justify-center items-center text-muted-foreground bg-muted/10">
-            <ImagePlus className="w-8 h-8 mb-3 opacity-50" />
-            <span className="text-sm">Función de multimedia en desarrollo</span>
-          </div>
+          {formData.icon_url ? (
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-muted/10 p-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={formData.icon_url} alt="Portada" className="w-24 h-24 rounded-lg object-cover border border-border" />
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, icon_url: '' })}
+                className="text-sm text-muted-foreground hover:text-destructive"
+              >
+                Quitar imagen
+              </button>
+            </div>
+          ) : (
+            <UploadDropzone
+              accept="image/*"
+              folder="levels"
+              label="Sube una imagen para la tarjeta del nivel"
+              onUploaded={(url) => setFormData((f) => ({ ...f, icon_url: url }))}
+            />
+          )}
         </div>
 
         <div className="flex justify-end pt-4 border-t border-border/50">

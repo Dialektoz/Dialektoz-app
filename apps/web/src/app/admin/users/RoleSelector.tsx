@@ -2,19 +2,12 @@
 
 import { useState, useTransition, useRef, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronDown, Loader2, Check } from 'lucide-react'
+import { ChevronDown, Loader2, Check, ShieldAlert } from 'lucide-react'
 import { setUserRole } from '../actions'
-import type { AssignableRole } from '../roles'
-
-const ROLE_OPTIONS: { value: AssignableRole; label: string; description: string }[] = [
-  { value: 'admin', label: 'Admin', description: 'Acceso total al panel' },
-  { value: 'teacher', label: 'Teacher', description: 'Profesor — pasa a /admin/teachers' },
-  { value: 'premium', label: 'Premium', description: 'Estudiante con suscripción' },
-  { value: 'student_premium', label: 'Student Premium', description: 'Estudiante premium (mismo acceso visual que Premium)' },
-  { value: 'free', label: 'Free', description: 'Estudiante sin suscripción' },
-]
+import { ALL_ROLES, ROLE_LABEL, ROLE_DESCRIPTION, canAssignRole, canManageTarget, type Role } from '../roles'
 
 const ROLE_BADGE: Record<string, string> = {
+  superadmin: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
   admin: 'bg-primary/15 text-primary border-primary/30',
   teacher: 'bg-green-500/15 text-green-500 border-green-500/30',
   premium: 'bg-amber-500/15 text-amber-500 border-amber-500/30',
@@ -23,24 +16,17 @@ const ROLE_BADGE: Record<string, string> = {
   student: 'bg-foreground/10 text-foreground/60 border-border',
 }
 
-const ROLE_LABEL: Record<string, string> = {
-  admin: 'Admin',
-  teacher: 'Teacher',
-  premium: 'Premium',
-  student_premium: 'Student Premium',
-  free: 'Free',
-  student: 'Free',
-}
-
-const POPOVER_WIDTH = 256 // matches w-64 (16rem * 16px)
+const POPOVER_WIDTH = 256
 const POPOVER_GAP = 8
 
 export default function RoleSelector({
   userId,
   currentRole,
+  actorRole,
 }: {
   userId: string
   currentRole: string
+  actorRole: string
 }) {
   const buttonRef = useRef<HTMLButtonElement | null>(null)
   const [isOpen, setIsOpen] = useState(false)
@@ -48,21 +34,20 @@ export default function RoleSelector({
   const [isPending, startTransition] = useTransition()
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null)
 
-  // Position the popover anchored to the button using viewport coords.
-  // The popover lives in a portal at <body>, so it escapes the table's overflow:hidden.
+  const badgeClass = ROLE_BADGE[currentRole] ?? ROLE_BADGE.free
+  const label = ROLE_LABEL[currentRole] ?? currentRole
+  const editable = canManageTarget(actorRole, currentRole)
+
   useLayoutEffect(() => {
     if (!isOpen || !buttonRef.current) return
-
     const updatePosition = () => {
       const rect = buttonRef.current!.getBoundingClientRect()
       const viewportWidth = window.innerWidth
-      // Right-align the popover to the button, but clamp inside viewport.
       let left = rect.right - POPOVER_WIDTH
       if (left < 8) left = 8
       if (left + POPOVER_WIDTH > viewportWidth - 8) left = viewportWidth - POPOVER_WIDTH - 8
       setCoords({ top: rect.bottom + POPOVER_GAP, left })
     }
-
     updatePosition()
     window.addEventListener('resize', updatePosition)
     window.addEventListener('scroll', updatePosition, true)
@@ -72,7 +57,7 @@ export default function RoleSelector({
     }
   }, [isOpen])
 
-  const handleSelect = (newRole: AssignableRole) => {
+  const handleSelect = (newRole: Role) => {
     if (newRole === currentRole) {
       setIsOpen(false)
       return
@@ -80,16 +65,30 @@ export default function RoleSelector({
     setError(null)
     startTransition(async () => {
       const result = await setUserRole(userId, newRole)
-      if (result.error) {
-        setError(result.error)
-      } else {
-        setIsOpen(false)
-      }
+      if (result.error) setError(result.error)
+      else setIsOpen(false)
     })
   }
 
-  const badgeClass = ROLE_BADGE[currentRole] ?? ROLE_BADGE.free
-  const label = ROLE_LABEL[currentRole] ?? currentRole
+  // Protected target (e.g. a superadmin, or an admin seen by another admin):
+  // show a read-only badge with a shield hint.
+  if (!editable) {
+    return (
+      <span
+        title={
+          currentRole === 'superadmin'
+            ? 'Super Admin — rol irrevocable'
+            : 'No tienes permiso para cambiar este rol'
+        }
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${badgeClass}`}
+      >
+        {currentRole === 'superadmin' && <ShieldAlert size={11} />}
+        {label}
+      </span>
+    )
+  }
+
+  const options = ALL_ROLES.filter((r) => r === currentRole || canAssignRole(actorRole, currentRole, r))
 
   return (
     <>
@@ -116,22 +115,20 @@ export default function RoleSelector({
               <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-wider px-3 py-2">
                 Cambiar rol
               </p>
-              {ROLE_OPTIONS.map((option) => {
-                const isCurrent = option.value === currentRole
+              {options.map((role) => {
+                const isCurrent = role === currentRole
                 return (
                   <button
-                    key={option.value}
-                    onClick={() => handleSelect(option.value)}
+                    key={role}
+                    onClick={() => handleSelect(role)}
                     disabled={isPending || isCurrent}
                     className={`w-full text-left px-3 py-2.5 rounded-lg flex items-start justify-between gap-2 transition-colors cursor-pointer ${
-                      isCurrent
-                        ? 'bg-primary/5 cursor-default'
-                        : 'hover:bg-background/60'
+                      isCurrent ? 'bg-primary/5 cursor-default' : 'hover:bg-background/60'
                     }`}
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-foreground">{option.label}</p>
-                      <p className="text-xs text-foreground/50">{option.description}</p>
+                      <p className="text-sm font-bold text-foreground">{ROLE_LABEL[role]}</p>
+                      <p className="text-xs text-foreground/50">{ROLE_DESCRIPTION[role]}</p>
                     </div>
                     {isCurrent && <Check size={14} className="text-primary mt-0.5 shrink-0" />}
                   </button>
@@ -139,9 +136,7 @@ export default function RoleSelector({
               })}
             </div>
             {error && (
-              <div className="border-t border-border bg-red-500/10 text-red-400 text-xs p-3">
-                {error}
-              </div>
+              <div className="border-t border-border bg-red-500/10 text-red-400 text-xs p-3">{error}</div>
             )}
           </div>
         </>,

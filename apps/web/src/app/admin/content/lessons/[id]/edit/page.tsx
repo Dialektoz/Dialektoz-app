@@ -9,7 +9,9 @@ import { normalizeBlocks, createBlock } from '@/components/editor/blocks/registr
 import { BlockList } from '@/components/editor/blocks/BlockList';
 import { LessonAttemptProvider } from '@/components/learn/LessonAttempt';
 import { QUIZ_EDITOR_TYPES } from '@/lib/exam/grading';
-import { ArrowLeft, Save, Loader2, Check, CloudOff, Eye, Pencil, Clock, BookOpen, ClipboardCheck } from 'lucide-react';
+import { SKILLS, parseSkills, formatSkills } from '@/lib/skills';
+import EditorGuide from '@/components/editor/EditorGuide';
+import { ArrowLeft, Save, Loader2, Check, CloudOff, Eye, EyeOff, Pencil, Clock, BookOpen, ClipboardCheck } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -135,20 +137,43 @@ export default function LessonEditorPage() {
     setIsSaving(false);
   };
 
-  // ── Autosave (existing lessons only) ──────────────────
+  // ── Autosave ──────────────────────────────────────────
+  // Existing lessons: debounced update. New lessons: the first real edit
+  // creates a draft and swaps the URL to the saved lesson, so pressing
+  // "Atrás" never loses work.
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipFirst = useRef(true);
+  const creatingDraft = useRef(false);
   useEffect(() => {
-    if (isNew || isLoading) return;
+    if (isLoading) return;
     if (skipFirst.current) {
       skipFirst.current = false;
       return;
     }
+    if (isNew && (!levelId || creatingDraft.current)) return;
+
     setSaveState('saving');
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     autosaveTimer.current = setTimeout(async () => {
-      const { error } = await supabase.from('lessons').update(buildPayload()).eq('id', lessonIdParam);
-      setSaveState(error ? 'error' : 'saved');
+      if (isNew) {
+        creatingDraft.current = true;
+        const { data, error } = await supabase
+          .from('lessons')
+          .insert({ ...buildPayload(), level_id: levelId })
+          .select()
+          .single();
+        if (error || !data) {
+          creatingDraft.current = false;
+          setSaveState('error');
+        } else {
+          setSaveState('saved');
+          const qs = `level_id=${levelId}&level_code=${levelCode ?? ''}`;
+          router.replace(`/admin/content/lessons/${data.id}/edit?${qs}`);
+        }
+      } else {
+        const { error } = await supabase.from('lessons').update(buildPayload()).eq('id', lessonIdParam);
+        setSaveState(error ? 'error' : 'saved');
+      }
     }, 1500);
     return () => {
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
@@ -175,7 +200,21 @@ export default function LessonEditorPage() {
               </h1>
             </div>
             <div className="flex items-center gap-3">
-              {!isNew && <SaveIndicator state={saveState} />}
+              <SaveIndicator state={saveState} />
+              <EditorGuide />
+              <button
+                type="button"
+                onClick={() => setPublished((p) => !p)}
+                title={published ? 'Visible para estudiantes — clic para ocultar' : 'Borrador — clic para publicar'}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
+                  published
+                    ? 'bg-green-500/15 text-green-600 hover:bg-green-500/25'
+                    : 'bg-muted text-foreground/70 hover:bg-muted/80'
+                }`}
+              >
+                {published ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                {published ? 'Publicada' : 'Borrador'}
+              </button>
               <Button
                 variant="outline"
                 onClick={() => setPreview((p) => !p)}
@@ -265,8 +304,30 @@ export default function LessonEditorPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
-                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">Skill / Habilidad</label>
-                  <input type="text" value={skillType} onChange={(e) => setSkillType(e.target.value)} className="w-full text-base bg-background border border-border p-3 rounded-xl outline-none text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary" placeholder="Ej: Listening, Grammar…" />
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">Skills / Habilidades</label>
+                  <div className="flex flex-wrap gap-2 bg-background border border-border p-2.5 rounded-xl">
+                    {SKILLS.map((skill) => {
+                      const selected = parseSkills(skillType).includes(skill);
+                      return (
+                        <button
+                          key={skill}
+                          type="button"
+                          onClick={() => {
+                            const current = parseSkills(skillType);
+                            const next = selected ? current.filter((s) => s !== skill) : [...current, skill];
+                            setSkillType(formatSkills(next));
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-semibold border transition-colors ${
+                            selected
+                              ? 'bg-primary/15 text-primary border-primary/40'
+                              : 'bg-background text-foreground/60 border-border hover:border-primary/30'
+                          }`}
+                        >
+                          {skill}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <div>
                   <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">Descripción corta</label>

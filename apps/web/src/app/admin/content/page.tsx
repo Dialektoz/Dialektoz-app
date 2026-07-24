@@ -10,7 +10,7 @@ async function getLevels() {
   const adminClient = createAdminClient();
   const { data, error } = await adminClient
     .from('levels')
-    .select('id, code, title, description, published');
+    .select('id, code, title, description, published, icon_url');
 
   if (error) console.error('[admin/content]', error.message);
   return data ?? [];
@@ -52,7 +52,13 @@ export default async function ContentPage() {
               className="bg-card border border-border hover:border-primary/50 rounded-xl p-5 transition-all group"
             >
               <div className="flex items-center justify-between mb-3">
-                <span className="text-3xl font-black text-primary">{level.code}</span>
+                <div className="flex items-center gap-3">
+                  {level.icon_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={level.icon_url} alt="" className="w-10 h-10 rounded-lg object-cover border border-border" />
+                  ) : null}
+                  <span className="text-3xl font-black text-primary">{level.code}</span>
+                </div>
                 {level.published ? (
                   <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-green-500/15 text-green-600 font-bold">
                     Publicado

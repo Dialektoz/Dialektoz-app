@@ -3,6 +3,7 @@
 import { ClipboardCheck } from 'lucide-react';
 import { LessonAttemptProvider } from './LessonAttempt';
 import { BlockList } from '@/components/editor/blocks/BlockList';
+import EvaluationSlides from './EvaluationSlides';
 import LessonFooter from './LessonFooter';
 
 interface LessonExperienceProps {
@@ -43,9 +44,9 @@ export default function LessonExperience({ blocks, quiz, ...footer }: LessonExpe
               <span className="text-[11px] font-bold uppercase tracking-widest">Evaluación</span>
             </div>
             <p className="text-sm text-foreground/50 mb-6">
-              Responde todas las preguntas para completar la lección.
+              Responde todas las preguntas para completar la lección. Avanza con los botones.
             </p>
-            <BlockList blocks={quiz} />
+            <EvaluationSlides blocks={quiz} />
           </section>
         )}
 
