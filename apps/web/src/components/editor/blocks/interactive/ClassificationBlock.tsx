@@ -4,19 +4,21 @@ import { useState, useMemo } from 'react';
 import { Boxes, Plus, Trash2, Check, X } from 'lucide-react';
 import { defineBlock } from '../types';
 import { useGradedActivity } from '@/components/learn/LessonAttempt';
+import { CText, ctText, ctColor, mkCT, ColorDots } from '../../textColor';
 
 interface Category {
-  name: string;
-  items: string[];
+  name: CText;
+  items: CText[];
 }
 export interface ClassificationData {
-  prompt: string;
+  prompt: CText;
   categories: Category[];
 }
 
 interface Token {
   id: string;
   label: string;
+  color?: string;
   correct: number; // category index it belongs to
 }
 
@@ -40,22 +42,27 @@ export const ClassificationBlock = defineBlock<ClassificationData>({
   createDefault: () => ({ prompt: '', categories: [{ name: 'Categoría A', items: [''] }, { name: 'Categoría B', items: [''] }] }),
   Editor: ({ data, onChange }) => {
     const setCat = (i: number, patch: Partial<Category>) => onChange({ ...data, categories: data.categories.map((c, idx) => (idx === i ? { ...c, ...patch } : c)) });
-    const setItem = (ci: number, ii: number, v: string) => setCat(ci, { items: data.categories[ci].items.map((it, idx) => (idx === ii ? v : it)) });
+    const setItem = (ci: number, ii: number, v: CText) => setCat(ci, { items: data.categories[ci].items.map((it, idx) => (idx === ii ? v : it)) });
     return (
       <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5">
         <div className="flex items-center gap-2 mb-3 text-primary font-bold text-xs uppercase tracking-wide"><Boxes className="w-4 h-4" /> Clasificación</div>
-        <input value={data.prompt} onChange={(e) => onChange({ ...data, prompt: e.target.value })} placeholder="Instrucción (ej: Clasifica cada palabra)" className="w-full font-semibold bg-background border border-border rounded-xl px-4 py-3 mb-3 outline-none focus:border-primary" />
+        <div className="flex items-center gap-2 mb-3">
+          <input value={ctText(data.prompt)} onChange={(e) => onChange({ ...data, prompt: mkCT(e.target.value, ctColor(data.prompt)) })} placeholder="Instrucción (ej: Clasifica cada palabra)" className="flex-1 font-semibold bg-background border border-border rounded-xl px-4 py-3 outline-none focus:border-primary" style={{ color: ctColor(data.prompt) }} />
+          <ColorDots color={ctColor(data.prompt)} onPick={(c) => onChange({ ...data, prompt: mkCT(ctText(data.prompt), c) })} />
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {data.categories.map((cat, ci) => (
             <div key={ci} className="rounded-lg border border-border bg-background p-3">
               <div className="flex items-center gap-2 mb-2">
-                <input value={cat.name} onChange={(e) => setCat(ci, { name: e.target.value })} placeholder="Nombre de la categoría" className="flex-1 font-bold bg-transparent outline-none border-b border-border/50 focus:border-primary" />
+                <input value={ctText(cat.name)} onChange={(e) => setCat(ci, { name: mkCT(e.target.value, ctColor(cat.name)) })} placeholder="Nombre de la categoría" className="flex-1 font-bold bg-transparent outline-none border-b border-border/50 focus:border-primary" style={{ color: ctColor(cat.name) }} />
+                <ColorDots color={ctColor(cat.name)} onPick={(c) => setCat(ci, { name: mkCT(ctText(cat.name), c) })} />
                 <button type="button" onClick={() => data.categories.length > 2 && onChange({ ...data, categories: data.categories.filter((_, idx) => idx !== ci) })} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
               </div>
               <div className="space-y-1.5">
                 {cat.items.map((it, ii) => (
                   <div key={ii} className="flex items-center gap-1.5">
-                    <input value={it} onChange={(e) => setItem(ci, ii, e.target.value)} placeholder={`Elemento ${ii + 1}`} className="flex-1 bg-muted/40 border border-border rounded px-2 py-1 text-sm outline-none focus:border-primary" />
+                    <input value={ctText(it)} onChange={(e) => setItem(ci, ii, mkCT(e.target.value, ctColor(it)))} placeholder={`Elemento ${ii + 1}`} className="flex-1 bg-muted/40 border border-border rounded px-2 py-1 text-sm outline-none focus:border-primary" style={{ color: ctColor(it) }} />
+                    <ColorDots color={ctColor(it)} onPick={(c) => setItem(ci, ii, mkCT(ctText(it), c))} />
                     <button type="button" onClick={() => cat.items.length > 1 && setCat(ci, { items: cat.items.filter((_, idx) => idx !== ii) })} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></button>
                   </div>
                 ))}
@@ -72,7 +79,7 @@ export const ClassificationBlock = defineBlock<ClassificationData>({
     const report = useGradedActivity(blockId);
     const tokens: Token[] = useMemo(() => {
       const list: Token[] = [];
-      data.categories.forEach((c, ci) => c.items.forEach((label, ii) => label.trim() && list.push({ id: `${ci}-${ii}`, label, correct: ci })));
+      data.categories.forEach((c, ci) => c.items.forEach((item, ii) => ctText(item).trim() && list.push({ id: `${ci}-${ii}`, label: ctText(item), color: ctColor(item), correct: ci })));
       return shuffle(list);
     }, [data.categories]);
 
@@ -118,6 +125,8 @@ export const ClassificationBlock = defineBlock<ClassificationData>({
               : selected ? 'border-primary bg-primary/15 text-primary ring-2 ring-primary/40'
               : 'border-border bg-background hover:border-primary/50'
           }`}
+          // Author color applies only in the neutral state; correct/wrong feedback colors win.
+          style={{ color: !ok && !bad && !selected ? t.color : undefined }}
         >
           {t.label}
           {ok && <Check className="w-3.5 h-3.5 inline ml-1" />}
@@ -131,7 +140,7 @@ export const ClassificationBlock = defineBlock<ClassificationData>({
 
     return (
       <div className="my-6 rounded-2xl border border-primary/30 bg-primary/5 p-6">
-        {data.prompt && <p className="text-lg font-semibold text-foreground mb-1">{data.prompt}</p>}
+        {ctText(data.prompt) && <p className="text-lg font-semibold text-foreground mb-1" style={{ color: ctColor(data.prompt) }}>{ctText(data.prompt)}</p>}
         {!checked && (
           <p className="text-xs text-muted-foreground mb-4">
             {picking ? 'Ahora toca la categoría donde va este elemento.' : 'Toca un elemento y luego su categoría (o arrástralo).'}
@@ -147,7 +156,7 @@ export const ClassificationBlock = defineBlock<ClassificationData>({
               onDrop={() => dropZone(ci)}
               className={`rounded-xl border-2 border-dashed p-3 min-h-[90px] transition-colors ${picking ? 'border-primary/60 bg-primary/5 cursor-pointer' : 'border-border bg-background/40'}`}
             >
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">{cat.name}</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2" style={{ color: ctColor(cat.name) }}>{ctText(cat.name)}</p>
               <div className="flex flex-wrap gap-2">
                 {tokens.filter((t) => placement[t.id] === ci).map((t) => <TokenChip key={t.id} t={t} />)}
               </div>

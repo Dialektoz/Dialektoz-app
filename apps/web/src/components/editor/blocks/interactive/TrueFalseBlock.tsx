@@ -4,9 +4,10 @@ import { useState } from 'react';
 import { ToggleLeft, Check, X } from 'lucide-react';
 import { defineBlock } from '../types';
 import { useGradedActivity } from '@/components/learn/LessonAttempt';
+import { CText, ctText, ctColor, mkCT, ColorDots } from '../../textColor';
 
 export interface TrueFalseData {
-  statement: string;
+  statement: CText;
   answer: boolean;
 }
 
@@ -22,7 +23,10 @@ export const TrueFalseBlock = defineBlock<TrueFalseData>({
   Editor: ({ data, onChange }) => (
     <div className="rounded-2xl border border-secondary/30 bg-secondary/5 p-5">
       <div className="flex items-center gap-2 mb-3 text-secondary font-bold text-xs uppercase tracking-wide"><ToggleLeft className="w-4 h-4" /> Verdadero / Falso</div>
-      <textarea rows={2} value={data.statement} onChange={(e) => onChange({ ...data, statement: e.target.value })} placeholder="Escribe la afirmación…" className="w-full bg-background border border-border rounded-xl px-4 py-3 mb-3 outline-none focus:border-secondary resize-none" />
+      <div className="flex items-start gap-2 mb-3">
+        <textarea rows={2} value={ctText(data.statement)} onChange={(e) => onChange({ ...data, statement: mkCT(e.target.value, ctColor(data.statement)) })} placeholder="Escribe la afirmación…" className="flex-1 bg-background border border-border rounded-xl px-4 py-3 outline-none focus:border-secondary resize-none" style={{ color: ctColor(data.statement) }} />
+        <ColorDots color={ctColor(data.statement)} onPick={(c) => onChange({ ...data, statement: mkCT(ctText(data.statement), c) })} />
+      </div>
       <div className="flex gap-2">
         <button type="button" onClick={() => onChange({ ...data, answer: true })} className={`flex-1 py-2 rounded-lg font-semibold text-sm border-2 transition-colors ${data.answer ? 'border-green-500 bg-green-500/10 text-green-600' : 'border-border text-muted-foreground'}`}>Verdadero</button>
         <button type="button" onClick={() => onChange({ ...data, answer: false })} className={`flex-1 py-2 rounded-lg font-semibold text-sm border-2 transition-colors ${!data.answer ? 'border-red-500 bg-red-500/10 text-red-600' : 'border-border text-muted-foreground'}`}>Falso</button>
@@ -37,7 +41,7 @@ export const TrueFalseBlock = defineBlock<TrueFalseData>({
     const correct = checked && pick === data.answer;
     return (
       <div className="my-6 rounded-2xl border border-secondary/30 bg-secondary/5 p-6">
-        <p className="text-lg font-semibold text-foreground mb-4">{data.statement}</p>
+        <p className="text-lg font-semibold text-foreground mb-4" style={{ color: ctColor(data.statement) }}>{ctText(data.statement)}</p>
         <div className="flex gap-3">
           {[true, false].map((v) => {
             const isRight = checked && v === data.answer;

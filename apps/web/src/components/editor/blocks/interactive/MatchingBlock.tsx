@@ -4,13 +4,16 @@ import { useState, useMemo } from 'react';
 import { ArrowLeftRight, Plus, Trash2, Check, X } from 'lucide-react';
 import { defineBlock } from '../types';
 import { useGradedActivity } from '@/components/learn/LessonAttempt';
+import { CText, ctText, ctColor, mkCT, ColorDots } from '../../textColor';
 
 interface Pair {
-  left: string;
+  left: CText;
+  // `right` stays a plain string: it is the value of a native <select> option
+  // (which cannot be reliably colored) and the grading key.
   right: string;
 }
 export interface MatchingData {
-  prompt: string;
+  prompt: CText;
   pairs: Pair[];
 }
 
@@ -37,11 +40,15 @@ export const MatchingBlock = defineBlock<MatchingData>({
     return (
       <div className="rounded-2xl border border-secondary/30 bg-secondary/5 p-5">
         <div className="flex items-center gap-2 mb-3 text-secondary font-bold text-xs uppercase tracking-wide"><ArrowLeftRight className="w-4 h-4" /> Emparejamiento</div>
-        <input value={data.prompt} onChange={(e) => onChange({ ...data, prompt: e.target.value })} placeholder="Instrucción (ej: Une cada palabra con su traducción)" className="w-full font-semibold bg-background border border-border rounded-xl px-4 py-3 mb-3 outline-none focus:border-secondary" />
+        <div className="flex items-center gap-2 mb-3">
+          <input value={ctText(data.prompt)} onChange={(e) => onChange({ ...data, prompt: mkCT(e.target.value, ctColor(data.prompt)) })} placeholder="Instrucción (ej: Une cada palabra con su traducción)" className="flex-1 font-semibold bg-background border border-border rounded-xl px-4 py-3 outline-none focus:border-secondary" style={{ color: ctColor(data.prompt) }} />
+          <ColorDots color={ctColor(data.prompt)} onPick={(c) => onChange({ ...data, prompt: mkCT(ctText(data.prompt), c) })} />
+        </div>
         <div className="space-y-2">
           {data.pairs.map((p, i) => (
             <div key={i} className="flex items-center gap-2">
-              <input value={p.left} onChange={(e) => setPair(i, { left: e.target.value })} placeholder="Izquierda" className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-secondary" />
+              <input value={ctText(p.left)} onChange={(e) => setPair(i, { left: mkCT(e.target.value, ctColor(p.left)) })} placeholder="Izquierda" className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-secondary" style={{ color: ctColor(p.left) }} />
+              <ColorDots color={ctColor(p.left)} onPick={(c) => setPair(i, { left: mkCT(ctText(p.left), c) })} />
               <ArrowLeftRight className="w-4 h-4 text-muted-foreground shrink-0" />
               <input value={p.right} onChange={(e) => setPair(i, { right: e.target.value })} placeholder="Derecha" className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-secondary" />
               <button type="button" onClick={() => data.pairs.length > 2 && onChange({ ...data, pairs: data.pairs.filter((_, idx) => idx !== i) })} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
@@ -60,14 +67,14 @@ export const MatchingBlock = defineBlock<MatchingData>({
 
     return (
       <div className="my-6 rounded-2xl border border-secondary/30 bg-secondary/5 p-6">
-        {data.prompt && <p className="text-lg font-semibold text-foreground mb-4">{data.prompt}</p>}
+        {ctText(data.prompt) && <p className="text-lg font-semibold text-foreground mb-4" style={{ color: ctColor(data.prompt) }}>{ctText(data.prompt)}</p>}
         <div className="space-y-2">
           {data.pairs.map((p, i) => {
             const ok = checked && picks[i] === p.right;
             const bad = checked && picks[i] !== p.right;
             return (
               <div key={i} className="flex items-center gap-3">
-                <div className="flex-1 p-3 rounded-lg border border-border bg-background/60 text-sm font-medium text-foreground">{p.left}</div>
+                <div className="flex-1 p-3 rounded-lg border border-border bg-background/60 text-sm font-medium text-foreground" style={{ color: ctColor(p.left) }}>{ctText(p.left)}</div>
                 <ArrowLeftRight className="w-4 h-4 text-muted-foreground shrink-0" />
                 <select
                   value={picks[i] ?? ''}

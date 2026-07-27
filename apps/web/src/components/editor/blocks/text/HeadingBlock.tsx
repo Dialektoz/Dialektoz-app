@@ -2,9 +2,10 @@
 
 import { Heading as HeadingIcon } from 'lucide-react';
 import { defineBlock } from '../types';
+import { CText, ctText, ctColor, mkCT, ColorDots } from '../../textColor';
 
 export interface HeadingData {
-  text: string;
+  text: CText;
   level: 1 | 2 | 3;
 }
 
@@ -37,15 +38,21 @@ export const HeadingBlock = defineBlock<HeadingData>({
         type="text"
         className={`w-full ${sizeByLevel[data.level]} font-bold bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground/40 focus:ring-0`}
         placeholder="Escribe el título…"
-        value={data.text}
-        onChange={(e) => onChange({ ...data, text: e.target.value })}
+        value={ctText(data.text)}
+        onChange={(e) => onChange({ ...data, text: mkCT(e.target.value, ctColor(data.text)) })}
+        style={{ color: ctColor(data.text) }}
       />
+      <div className="mt-2 shrink-0">
+        <ColorDots color={ctColor(data.text)} onPick={(c) => onChange({ ...data, text: mkCT(ctText(data.text), c) })} />
+      </div>
     </div>
   ),
   Renderer: ({ data }) => {
     const cls = `${sizeByLevel[data.level]} font-bold text-foreground tracking-tight mt-8 mb-4`;
-    if (data.level === 1) return <h1 className={cls}>{data.text}</h1>;
-    if (data.level === 3) return <h3 className={cls}>{data.text}</h3>;
-    return <h2 className={cls}>{data.text}</h2>;
+    const color = ctColor(data.text);
+    const text = ctText(data.text);
+    if (data.level === 1) return <h1 className={cls} style={{ color }}>{text}</h1>;
+    if (data.level === 3) return <h3 className={cls} style={{ color }}>{text}</h3>;
+    return <h2 className={cls} style={{ color }}>{text}</h2>;
   },
 });

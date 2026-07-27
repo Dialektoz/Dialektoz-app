@@ -5,15 +5,16 @@ import { Tags, Trash2, Check, X } from 'lucide-react';
 import { defineBlock } from '../types';
 import { useGradedActivity } from '@/components/learn/LessonAttempt';
 import { UploadDropzone } from '../../UploadDropzone';
+import { CText, ctText, ctColor, mkCT, ColorDots } from '../../textColor';
 
 interface Point {
   x: number;
   y: number;
-  label: string; // correct label
+  label: string; // correct label (grading key, kept plain)
 }
 export interface ImageLabelingData {
   imageUrl: string;
-  prompt: string;
+  prompt: CText;
   points: Point[];
 }
 
@@ -50,7 +51,10 @@ export const ImageLabelingBlock = defineBlock<ImageLabelingData>({
     return (
       <div className="rounded-2xl border border-secondary/30 bg-secondary/5 p-5 space-y-3">
         <div className="flex items-center gap-2 text-secondary font-bold text-xs uppercase tracking-wide"><Tags className="w-4 h-4" /> Etiquetar imagen</div>
-        <input value={data.prompt} onChange={(e) => onChange({ ...data, prompt: e.target.value })} placeholder="Instrucción (ej: Etiqueta las partes de la casa)" className="w-full font-semibold bg-background border border-border rounded-xl px-4 py-3 outline-none focus:border-secondary" />
+        <div className="flex items-center gap-2">
+          <input value={ctText(data.prompt)} onChange={(e) => onChange({ ...data, prompt: mkCT(e.target.value, ctColor(data.prompt)) })} placeholder="Instrucción (ej: Etiqueta las partes de la casa)" className="flex-1 font-semibold bg-background border border-border rounded-xl px-4 py-3 outline-none focus:border-secondary" style={{ color: ctColor(data.prompt) }} />
+          <ColorDots color={ctColor(data.prompt)} onPick={(c) => onChange({ ...data, prompt: mkCT(ctText(data.prompt), c) })} />
+        </div>
 
         {!data.imageUrl ? (
           <UploadDropzone accept="image/*" label="Sube la imagen base" onUploaded={(url) => onChange({ ...data, imageUrl: url })} />
@@ -91,7 +95,7 @@ export const ImageLabelingBlock = defineBlock<ImageLabelingData>({
 
     return (
       <div className="my-6 rounded-2xl border border-secondary/30 bg-secondary/5 p-6">
-        {data.prompt && <p className="text-lg font-semibold text-foreground mb-4">{data.prompt}</p>}
+        {ctText(data.prompt) && <p className="text-lg font-semibold text-foreground mb-4" style={{ color: ctColor(data.prompt) }}>{ctText(data.prompt)}</p>}
         <div className="relative w-full rounded-xl overflow-hidden border border-border mb-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={data.imageUrl} alt="" className="w-full block" />

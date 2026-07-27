@@ -2,11 +2,12 @@
 
 import { Info, AlertTriangle, CheckCircle2, XCircle, Lightbulb } from 'lucide-react';
 import { defineBlock } from '../types';
+import { CText, ctText, ctColor, mkCT, ColorDots } from '../../textColor';
 
 type CalloutVariant = 'info' | 'warning' | 'success' | 'danger' | 'tip';
 
 export interface CalloutData {
-  text: string;
+  text: CText;
   variant: CalloutVariant;
 }
 
@@ -47,13 +48,17 @@ export const CalloutBlock = defineBlock<CalloutData>({
               </button>
             ))}
           </div>
+          <div className="ml-auto">
+            <ColorDots color={ctColor(data.text)} onPick={(c) => onChange({ ...data, text: mkCT(ctText(data.text), c) })} />
+          </div>
         </div>
         <textarea
           rows={2}
-          value={data.text}
-          onChange={(e) => onChange({ ...data, text: e.target.value })}
+          value={ctText(data.text)}
+          onChange={(e) => onChange({ ...data, text: mkCT(e.target.value, ctColor(data.text)) })}
           placeholder="Escribe el mensaje destacado…"
           className="w-full bg-transparent outline-none resize-none text-foreground placeholder:text-muted-foreground/50"
+          style={{ color: ctColor(data.text) }}
         />
       </div>
     );
@@ -64,7 +69,7 @@ export const CalloutBlock = defineBlock<CalloutData>({
     return (
       <div className={`my-6 rounded-xl border p-4 flex gap-3 ${v.box}`}>
         <Icon className={`w-5 h-5 shrink-0 mt-0.5 ${v.accent}`} />
-        <p className="text-foreground/90 leading-relaxed whitespace-pre-wrap">{data.text}</p>
+        <p className="text-foreground/90 leading-relaxed whitespace-pre-wrap" style={{ color: ctColor(data.text) }}>{ctText(data.text)}</p>
       </div>
     );
   },

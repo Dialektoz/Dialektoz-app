@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { PenTool } from 'lucide-react';
 import { defineBlock } from '../types';
+import { CText, ctText, ctColor, mkCT, ColorDots } from '../../textColor';
 
 export interface EssayData {
-  prompt: string;
+  prompt: CText;
   minWords: number;
   placeholder: string;
 }
@@ -23,7 +24,10 @@ export const EssayBlock = defineBlock<EssayData>({
   Editor: ({ data, onChange }) => (
     <div className="rounded-2xl border border-secondary/30 bg-secondary/5 p-5">
       <div className="flex items-center gap-2 mb-3 text-secondary font-bold text-xs uppercase tracking-wide"><PenTool className="w-4 h-4" /> Respuesta larga / Ensayo</div>
-      <textarea rows={2} value={data.prompt} onChange={(e) => onChange({ ...data, prompt: e.target.value })} placeholder="Consigna (ej: Describe tu rutina diaria en pasado)" className="w-full font-semibold bg-background border border-border rounded-xl px-4 py-3 mb-3 outline-none focus:border-secondary resize-none" />
+      <div className="flex items-start gap-2 mb-3">
+        <textarea rows={2} value={ctText(data.prompt)} onChange={(e) => onChange({ ...data, prompt: mkCT(e.target.value, ctColor(data.prompt)) })} placeholder="Consigna (ej: Describe tu rutina diaria en pasado)" className="flex-1 font-semibold bg-background border border-border rounded-xl px-4 py-3 outline-none focus:border-secondary resize-none" style={{ color: ctColor(data.prompt) }} />
+        <ColorDots color={ctColor(data.prompt)} onPick={(c) => onChange({ ...data, prompt: mkCT(ctText(data.prompt), c) })} />
+      </div>
       <div className="flex flex-wrap gap-3 items-center">
         <label className="text-xs text-muted-foreground flex items-center gap-2">
           Mínimo de palabras
@@ -39,7 +43,7 @@ export const EssayBlock = defineBlock<EssayData>({
     const meets = data.minWords === 0 || words >= data.minWords;
     return (
       <div className="my-6 rounded-2xl border border-secondary/30 bg-secondary/5 p-6">
-        {data.prompt && <p className="text-lg font-semibold text-foreground mb-4">{data.prompt}</p>}
+        {ctText(data.prompt) && <p className="text-lg font-semibold text-foreground mb-4" style={{ color: ctColor(data.prompt) }}>{ctText(data.prompt)}</p>}
         <textarea
           rows={6}
           value={text}

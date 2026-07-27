@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { MapPin, Trash2 } from 'lucide-react';
 import { defineBlock } from '../types';
 import { UploadDropzone } from '../../UploadDropzone';
+import { CText, ctText, ctColor, mkCT, ColorDots } from '../../textColor';
 
 interface Spot {
   x: number; // percentage 0-100
@@ -12,7 +13,7 @@ interface Spot {
 }
 export interface ImageHotspotData {
   imageUrl: string;
-  prompt: string;
+  prompt: CText;
   spots: Spot[];
 }
 
@@ -39,7 +40,10 @@ export const ImageHotspotBlock = defineBlock<ImageHotspotData>({
     return (
       <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5 space-y-3">
         <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wide"><MapPin className="w-4 h-4" /> Hotspots en imagen</div>
-        <input value={data.prompt} onChange={(e) => onChange({ ...data, prompt: e.target.value })} placeholder="Instrucción (ej: Haz clic en cada objeto)" className="w-full font-semibold bg-background border border-border rounded-xl px-4 py-3 outline-none focus:border-primary" />
+        <div className="flex items-center gap-2">
+          <input value={ctText(data.prompt)} onChange={(e) => onChange({ ...data, prompt: mkCT(e.target.value, ctColor(data.prompt)) })} placeholder="Instrucción (ej: Haz clic en cada objeto)" className="flex-1 font-semibold bg-background border border-border rounded-xl px-4 py-3 outline-none focus:border-primary" style={{ color: ctColor(data.prompt) }} />
+          <ColorDots color={ctColor(data.prompt)} onPick={(c) => onChange({ ...data, prompt: mkCT(ctText(data.prompt), c) })} />
+        </div>
 
         {!data.imageUrl ? (
           <UploadDropzone accept="image/*" label="Sube la imagen base" onUploaded={(url) => onChange({ ...data, imageUrl: url })} />
@@ -78,7 +82,7 @@ export const ImageHotspotBlock = defineBlock<ImageHotspotData>({
     if (!data.imageUrl) return null;
     return (
       <div className="my-6">
-        {data.prompt && <p className="text-lg font-semibold text-foreground mb-3">{data.prompt}</p>}
+        {ctText(data.prompt) && <p className="text-lg font-semibold text-foreground mb-3" style={{ color: ctColor(data.prompt) }}>{ctText(data.prompt)}</p>}
         <div className="relative w-full rounded-xl overflow-hidden border border-border">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={data.imageUrl} alt="" className="w-full block" />

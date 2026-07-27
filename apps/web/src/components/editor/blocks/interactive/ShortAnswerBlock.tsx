@@ -4,9 +4,12 @@ import { useState } from 'react';
 import { MessageSquare, Plus, Trash2, Check } from 'lucide-react';
 import { defineBlock } from '../types';
 import { useGradedActivity } from '@/components/learn/LessonAttempt';
+import { CText, ctText, ctColor, mkCT, ColorDots } from '../../textColor';
 
 export interface ShortAnswerData {
-  question: string;
+  question: CText;
+  // `answers` stay plain strings: they are author-only accepted answers used as
+  // exact-match grading keys and are never shown to the student.
   answers: string[];
   caseSensitive: boolean;
 }
@@ -25,7 +28,10 @@ export const ShortAnswerBlock = defineBlock<ShortAnswerData>({
     return (
       <div className="rounded-2xl border border-secondary/30 bg-secondary/5 p-5">
         <div className="flex items-center gap-2 mb-3 text-secondary font-bold text-xs uppercase tracking-wide"><MessageSquare className="w-4 h-4" /> Respuesta corta</div>
-        <input value={data.question} onChange={(e) => onChange({ ...data, question: e.target.value })} placeholder="¿Cuál es la pregunta?" className="w-full text-lg font-bold bg-background border border-border rounded-xl px-4 py-3 mb-3 outline-none focus:border-secondary" />
+        <div className="flex items-center gap-2 mb-3">
+          <input value={ctText(data.question)} onChange={(e) => onChange({ ...data, question: mkCT(e.target.value, ctColor(data.question)) })} placeholder="¿Cuál es la pregunta?" className="flex-1 text-lg font-bold bg-background border border-border rounded-xl px-4 py-3 outline-none focus:border-secondary" style={{ color: ctColor(data.question) }} />
+          <ColorDots color={ctColor(data.question)} onPick={(c) => onChange({ ...data, question: mkCT(ctText(data.question), c) })} />
+        </div>
         <p className="text-xs text-muted-foreground mb-2">Respuestas aceptadas (cualquiera cuenta como correcta):</p>
         <div className="space-y-2">
           {data.answers.map((a, i) => (
@@ -50,7 +56,7 @@ export const ShortAnswerBlock = defineBlock<ShortAnswerData>({
     const ok = checked && data.answers.some((a) => norm(a) === norm(value));
     return (
       <div className="my-6 rounded-2xl border border-secondary/30 bg-secondary/5 p-6">
-        <p className="text-lg font-semibold text-foreground mb-4">{data.question}</p>
+        <p className="text-lg font-semibold text-foreground mb-4" style={{ color: ctColor(data.question) }}>{ctText(data.question)}</p>
         <input value={value} onChange={(e) => setValue(e.target.value)} disabled={checked && ok} placeholder="Tu respuesta…" className={`w-full bg-background border-2 rounded-xl px-4 py-3 outline-none transition-colors ${checked ? (ok ? 'border-green-500 text-green-600' : 'border-red-500 text-red-600') : 'border-border focus:border-secondary'}`} />
         <div className="mt-4 flex items-center gap-3">
           <button disabled={!value || (checked && ok)} onClick={() => { setChecked(true); report(data.answers.some((a) => norm(a) === norm(value))); }} className="bg-secondary text-secondary-foreground font-bold text-sm px-4 py-2 rounded-lg disabled:opacity-50">Comprobar</button>

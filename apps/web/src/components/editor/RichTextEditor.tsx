@@ -7,15 +7,7 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import { Bold, Italic, Strikethrough, List, ListOrdered, Heading2, Ban } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
-// Curated palette — readable on the dark theme, no free color picker.
-const TEXT_COLORS = [
-  { name: 'Dorado', value: '#D4AF37' },
-  { name: 'Rojo', value: '#F87171' },
-  { name: 'Verde', value: '#4ADE80' },
-  { name: 'Azul', value: '#60A5FA' },
-  { name: 'Morado', value: '#C084FC' },
-];
+import { TEXT_COLORS } from './textColor';
 
 interface RichTextEditorProps {
   content: JSONContent | null;

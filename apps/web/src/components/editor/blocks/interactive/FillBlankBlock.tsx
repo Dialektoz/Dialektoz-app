@@ -4,9 +4,10 @@ import { useState } from 'react';
 import { PenLine } from 'lucide-react';
 import { defineBlock } from '../types';
 import { useGradedActivity } from '@/components/learn/LessonAttempt';
+import { CText, ctText, ctColor, mkCT, ColorDots } from '../../textColor';
 
 export interface FillBlankData {
-  text: string;
+  text: CText;
 }
 
 const split = (text: string) => (text || '').split(/(\{\{.*?\}\})/);
@@ -25,15 +26,18 @@ export const FillBlankBlock = defineBlock<FillBlankData>({
     <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5">
       <div className="flex items-center gap-2 mb-2 text-primary font-bold text-xs uppercase tracking-wide"><PenLine className="w-4 h-4" /> Completar espacios</div>
       <p className="text-xs text-muted-foreground mb-3">Usa <code className="bg-primary/20 text-primary px-1.5 py-0.5 rounded font-bold">{'{{respuesta}}'}</code> para crear un hueco.</p>
-      <textarea rows={2} value={data.text} onChange={(e) => onChange({ text: e.target.value })} placeholder="Ej: The cat is {{on}} the table." className="w-full text-lg bg-background border border-border rounded-xl px-4 py-3 outline-none focus:border-primary resize-none font-medium" />
-      <div className="mt-3 flex flex-wrap items-center gap-2 p-3 bg-background/50 rounded-lg border border-border/40">
+      <div className="flex items-start gap-2">
+        <textarea rows={2} value={ctText(data.text)} onChange={(e) => onChange({ text: mkCT(e.target.value, ctColor(data.text)) })} placeholder="Ej: The cat is {{on}} the table." className="flex-1 text-lg bg-background border border-border rounded-xl px-4 py-3 outline-none focus:border-primary resize-none font-medium" style={{ color: ctColor(data.text) }} />
+        <ColorDots color={ctColor(data.text)} onPick={(c) => onChange({ text: mkCT(ctText(data.text), c) })} />
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2 p-3 bg-background/50 rounded-lg border border-border/40" style={{ color: ctColor(data.text) }}>
         <span className="text-[10px] font-bold text-muted-foreground uppercase">Vista previa:</span>
-        {split(data.text).map((p, i) => isBlank(p) ? <span key={i} className="inline-block px-3 py-1 bg-primary/10 border-b-2 border-primary text-primary rounded-sm min-w-[50px] text-center">…</span> : <span key={i}>{p}</span>)}
+        {split(ctText(data.text)).map((p, i) => isBlank(p) ? <span key={i} className="inline-block px-3 py-1 bg-primary/10 border-b-2 border-primary text-primary rounded-sm min-w-[50px] text-center">…</span> : <span key={i}>{p}</span>)}
       </div>
     </div>
   ),
   Renderer: ({ data, blockId }) => {
-    const parts = split(data.text);
+    const parts = split(ctText(data.text));
     const answers = parts.filter(isBlank).map((p) => p.slice(2, -2));
     const [values, setValues] = useState<string[]>(answers.map(() => ''));
     const [checked, setChecked] = useState(false);
@@ -41,7 +45,7 @@ export const FillBlankBlock = defineBlock<FillBlankData>({
     let bi = -1;
     return (
       <div className="my-6 rounded-2xl border border-primary/30 bg-primary/5 p-6">
-        <div className="flex flex-wrap items-center gap-2 text-lg font-medium text-foreground">
+        <div className="flex flex-wrap items-center gap-2 text-lg font-medium text-foreground" style={{ color: ctColor(data.text) }}>
           {parts.map((part, i) => {
             if (!isBlank(part)) return <span key={i}>{part}</span>;
             bi++;

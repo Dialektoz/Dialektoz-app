@@ -10,6 +10,8 @@
  * fill-blank and short-answer.
  */
 
+import { ctText, type CText } from '@/lib/ctext';
+
 export const SUPPORTED_QUESTION_TYPES = [
   'quiz',
   'multi-choice',
@@ -95,20 +97,20 @@ export function toPublicQuestion(block: RawBlock): PublicQuestion | null {
       return {
         id: block.id,
         type: 'quiz',
-        prompt: String(d.question ?? ''),
-        options: Array.isArray(d.options) ? (d.options as string[]) : [],
+        prompt: ctText(d.question as CText),
+        options: Array.isArray(d.options) ? (d.options as CText[]).map(ctText) : [],
       };
     case 'multi-choice':
       return {
         id: block.id,
         type: 'multi-choice',
-        prompt: String(d.question ?? ''),
-        options: Array.isArray(d.options) ? (d.options as string[]) : [],
+        prompt: ctText(d.question as CText),
+        options: Array.isArray(d.options) ? (d.options as CText[]).map(ctText) : [],
       };
     case 'true-false':
-      return { id: block.id, type: 'true-false', prompt: String(d.statement ?? '') };
+      return { id: block.id, type: 'true-false', prompt: ctText(d.statement as CText) };
     case 'fill-blank': {
-      const parts = splitBlanks(String(d.text ?? ''));
+      const parts = splitBlanks(ctText(d.text as CText));
       return {
         id: block.id,
         type: 'fill-blank',
@@ -119,7 +121,7 @@ export function toPublicQuestion(block: RawBlock): PublicQuestion | null {
       };
     }
     case 'short-answer':
-      return { id: block.id, type: 'short-answer', prompt: String(d.question ?? '') };
+      return { id: block.id, type: 'short-answer', prompt: ctText(d.question as CText) };
     default:
       return null;
   }
@@ -148,7 +150,7 @@ export function gradeBlock(block: RawBlock, answer: AnswerValue): boolean {
 
     case 'fill-blank': {
       if (!Array.isArray(answer)) return false;
-      const expected = splitBlanks(String(d.text ?? ''))
+      const expected = splitBlanks(ctText(d.text as CText))
         .filter(isBlank)
         .map((p) => p.slice(2, -2));
       if (expected.length === 0) return false;
