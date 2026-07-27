@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Sidebar from '@/components/layout/Sidebar'
+import { getCurrentUser } from '@/utils/supabase/session'
 import TopNavigation from '@/components/layout/TopNavigation'
 import MobileHeader from '@/components/layout/MobileHeader'
 import MobileBottomNav from '@/components/layout/MobileBottomNav'
@@ -16,9 +17,7 @@ export default async function LevelLessonsPage({
   const { code: rawCode } = await params
   const code = decodeURIComponent(rawCode) // handles custom codes with spaces (%20)
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
 
   const { data: level } = await supabase
     .from('levels')

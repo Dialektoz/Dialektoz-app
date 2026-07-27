@@ -1,5 +1,6 @@
 import { redirect, notFound } from 'next/navigation';
 import Sidebar from '@/components/layout/Sidebar';
+import { getCurrentUser } from '@/utils/supabase/session';
 import TopNavigation from '@/components/layout/TopNavigation';
 import MobileHeader from '@/components/layout/MobileHeader';
 import MobileBottomNav from '@/components/layout/MobileBottomNav';
@@ -14,7 +15,7 @@ export const metadata = {
 export default async function ExamPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect('/login');
 
   const levels = await getCertificationLevels(supabase, user.id);

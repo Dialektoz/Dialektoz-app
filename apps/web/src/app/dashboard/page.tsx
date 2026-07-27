@@ -5,6 +5,7 @@ import TopNavigation from "@/components/layout/TopNavigation";
 import MobileHeader from "@/components/layout/MobileHeader";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import { createClient } from "@/utils/supabase/server";
+import { getCurrentProfile } from "@/utils/supabase/session";
 import { getDashboardData, getLeaderboard } from "@/lib/dashboard";
 import WelcomeTour from "@/components/dashboard/WelcomeTour";
 
@@ -24,33 +25,19 @@ const roleLabels: Record<string, string> = {
 
 export default async function Dashboard() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  let profileRow: { full_name: string | null; email: string | null; avatar_url: string | null; role: string | null } | null = null;
-  if (user) {
-    const { data } = await supabase
-      .from("profiles")
-      .select("full_name, email, avatar_url, role")
-      .eq("id", user.id)
-      .single();
-    profileRow = data;
-  }
+  // Deduplicated with the sidebar via React cache — one user+profile fetch.
+  const current = await getCurrentProfile();
 
   const [data, leaderboard] = await Promise.all([
-    getDashboardData(supabase, user?.id ?? null),
+    getDashboardData(supabase, current?.id ?? null),
     getLeaderboard(supabase, 6),
   ]);
 
-  const displayName =
-    profileRow?.full_name?.trim() ||
-    profileRow?.email?.split("@")[0] ||
-    "Estudiante";
+  const displayName = current?.name ?? "Estudiante";
   const profile = {
     name: displayName,
-    roleLabel: roleLabels[profileRow?.role ?? "free"] ?? "Estudiante",
-    avatarUrl: profileRow?.avatar_url ?? null,
+    roleLabel: roleLabels[current?.role ?? "free"] ?? "Estudiante",
+    avatarUrl: current?.avatarUrl ?? null,
   };
 
   return (
@@ -66,7 +53,7 @@ export default async function Dashboard() {
         stats={data.stats}
         achievements={data.achievements}
         leaderboard={leaderboard}
-        currentUserId={user?.id ?? null}
+        currentUserId={current?.id ?? null}
       />
       <MobileBottomNav />
       <WelcomeTour />

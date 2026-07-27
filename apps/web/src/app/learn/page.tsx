@@ -9,14 +9,13 @@ export const metadata = {
 };
 
 import { createClient } from '@/utils/supabase/server';
+import { getCurrentUser } from '@/utils/supabase/session';
 import { Level } from '@/types/learning';
 import { getLevelProgressMap } from '@/lib/learning';
 
 export default async function LearnPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   const { data } = await supabase
     .from('levels')

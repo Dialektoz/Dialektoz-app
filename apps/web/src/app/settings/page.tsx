@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import Sidebar from '@/components/layout/Sidebar';
+import { getCurrentUser } from '@/utils/supabase/session';
 import TopNavigation from '@/components/layout/TopNavigation';
 import MobileHeader from '@/components/layout/MobileHeader';
 import MobileBottomNav from '@/components/layout/MobileBottomNav';
@@ -14,7 +15,7 @@ export const metadata = {
 
 export default async function SettingsPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect('/login');
 
   const { data: profile } = await supabase

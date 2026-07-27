@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Sidebar from '@/components/layout/Sidebar';
+import { getCurrentUser } from '@/utils/supabase/session';
 import TopNavigation from '@/components/layout/TopNavigation';
 import MobileHeader from '@/components/layout/MobileHeader';
 import MobileBottomNav from '@/components/layout/MobileBottomNav';
@@ -17,7 +18,7 @@ const WEEKLY_GOAL = 5; // days per week
 
 export default async function StreakPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   const data = await getStreakData(supabase, user?.id ?? null);
 
   const goalPct = Math.min(100, Math.round((data.weekDays / WEEKLY_GOAL) * 100));

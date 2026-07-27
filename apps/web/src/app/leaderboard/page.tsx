@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Sidebar from '@/components/layout/Sidebar';
+import { getCurrentUser } from '@/utils/supabase/session';
 import TopNavigation from '@/components/layout/TopNavigation';
 import MobileHeader from '@/components/layout/MobileHeader';
 import MobileBottomNav from '@/components/layout/MobileBottomNav';
@@ -22,7 +23,7 @@ export default async function LeaderboardPage({
   const period = parsePeriod(periodParam);
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   const [rows, myRank] = await Promise.all([
     getLeaderboard(supabase, period, 25),
