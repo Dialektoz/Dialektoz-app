@@ -119,10 +119,6 @@ export async function updateSession(request: NextRequest) {
           return NextResponse.redirect(url)
         }
       }
-
-      // Forward the user's role to app routes via headers
-      request.headers.set('x-user-role', profile.role)
-      supabaseResponse.headers.set('x-user-role', profile.role)
     }
   }
 
