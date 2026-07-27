@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     keyFolder = `avatars/${user.id}`;
   } else {
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-    if (!profile || !['superadmin', 'admin', 'teacher'].includes(profile.role)) {
+    if (!profile || !['superadmin', 'teacher'].includes(profile.role)) {
       return NextResponse.json({ error: 'Sin permiso para subir archivos' }, { status: 403 });
     }
     // Only these content folders are allowed for staff uploads.

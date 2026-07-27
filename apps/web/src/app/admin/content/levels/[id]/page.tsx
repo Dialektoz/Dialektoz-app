@@ -8,22 +8,24 @@ import EditLevelDialog from './EditLevelDialog';
 
 export default async function LevelAdminDashboard({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
-  const levelCode = resolvedParams.id;
+  const levelId = resolvedParams.id;
 
   const supabase = await createClient();
 
+  // Levels are addressed by their immutable UUID, so renaming the code or
+  // using custom codes with spaces never breaks the URL.
   const { data: levelData, error: levelError } = await supabase
     .from('levels')
     .select('id, title, code, description, order_index, published, icon_url')
-    .eq('code', levelCode)
+    .eq('id', levelId)
     .single();
 
   if (!levelData || levelError) {
     return (
       <div className="flex items-center justify-center py-24 text-foreground flex-col gap-4">
-        <h2>No se encontró el Nivel {levelCode} en la base de datos.</h2>
-        <Link href="/admin">
-          <Button>Volver al panel</Button>
+        <h2>No se encontró el nivel en la base de datos.</h2>
+        <Link href="/admin/content">
+          <Button>Volver a contenido</Button>
         </Link>
       </div>
     );

@@ -41,7 +41,6 @@ export default function EditLevelDialog({ level }: EditLevelDialogProps) {
     }
     setSaving(true);
     const supabase = createClient();
-    const codeChanged = form.code !== level.code;
     const { error } = await supabase
       .from('levels')
       .update({
@@ -64,8 +63,8 @@ export default function EditLevelDialog({ level }: EditLevelDialogProps) {
       void deleteUpload(level.icon_url);
     }
     setOpen(false);
-    if (codeChanged) router.replace(`/admin/content/levels/${form.code.toUpperCase().trim()}`);
-    else router.refresh();
+    // URL is the level UUID (stable), so a code change needs no redirect.
+    router.refresh();
   };
 
   return (

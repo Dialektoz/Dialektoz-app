@@ -99,15 +99,25 @@ export async function updateSession(request: NextRequest) {
 
       // 2. Role-Based Access Control (Admin Routes Protection)
       // Admin and teacher both can enter /admin; teacher permissions refined later.
-      if (
-        request.nextUrl.pathname.startsWith('/admin') &&
-        profile.role !== 'admin' &&
-        profile.role !== 'superadmin' &&
-        profile.role !== 'teacher'
-      ) {
-        const url = request.nextUrl.clone()
-        url.pathname = '/dashboard'
-        return NextResponse.redirect(url)
+      if (request.nextUrl.pathname.startsWith('/admin')) {
+        // Only staff roles may enter /admin at all.
+        if (profile.role !== 'admin' && profile.role !== 'superadmin' && profile.role !== 'teacher') {
+          const url = request.nextUrl.clone()
+          url.pathname = '/dashboard'
+          return NextResponse.redirect(url)
+        }
+        // Teacher: content only. Send them there from any other admin area.
+        if (profile.role === 'teacher' && !request.nextUrl.pathname.startsWith('/admin/content')) {
+          const url = request.nextUrl.clone()
+          url.pathname = '/admin/content'
+          return NextResponse.redirect(url)
+        }
+        // Admin (coordinator): users/memberships only, never content.
+        if (profile.role === 'admin' && request.nextUrl.pathname.startsWith('/admin/content')) {
+          const url = request.nextUrl.clone()
+          url.pathname = '/admin'
+          return NextResponse.redirect(url)
+        }
       }
 
       // Forward the user's role to app routes via headers

@@ -53,7 +53,7 @@ export default function CreateLevelPage() {
       }
     } else if (data) {
       alert('Nivel Creado Exitosamente!');
-      router.push(`/admin/content/levels/${data.code}`);
+      router.push(`/admin/content/levels/${data.id}`);
     }
   };
 

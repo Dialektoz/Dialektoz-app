@@ -48,7 +48,7 @@ export default async function ContentPage() {
           {levels.map((level) => (
             <Link
               key={level.id}
-              href={`/admin/content/levels/${level.code}`}
+              href={`/admin/content/levels/${level.id}`}
               className="bg-card border border-border hover:border-primary/50 rounded-xl p-5 transition-all group"
             >
               <div className="flex items-center justify-between mb-3">

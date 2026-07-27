@@ -14,7 +14,8 @@ export default async function LessonViewPage({
 }: {
   params: Promise<{ code: string; lessonId: string }>
 }) {
-  const { code, lessonId } = await params
+  const { code: rawCode, lessonId } = await params
+  const code = decodeURIComponent(rawCode) // handles custom codes with spaces (%20)
   const supabase = await createClient()
   const {
     data: { user },

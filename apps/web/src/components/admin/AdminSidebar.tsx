@@ -12,7 +12,10 @@ export default function AdminSidebar({ role }: { role?: string | null }) {
   const router = useRouter();
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const isAdmin = role === 'admin' || role === 'superadmin';
+  // Owner's matrix: Admin manages users/memberships only (no content);
+  // Teacher manages content only; SuperAdmin does everything.
+  const canManageUsers = role === 'admin' || role === 'superadmin';
+  const canManageContent = role === 'teacher' || role === 'superadmin';
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -48,9 +51,13 @@ export default function AdminSidebar({ role }: { role?: string | null }) {
         )}
 
         <nav className="flex flex-col gap-1">
-          <NavItem href="/admin" icon={<LayoutDashboard size={18} />} label="Resumen" active={pathname === '/admin'} collapsed={isCollapsed} />
-          <NavItem href="/admin/content" icon={<BookOpen size={18} />} label="Contenido" active={pathname.startsWith('/admin/content')} collapsed={isCollapsed} />
-          {isAdmin && (
+          {canManageUsers && (
+            <NavItem href="/admin" icon={<LayoutDashboard size={18} />} label="Resumen" active={pathname === '/admin'} collapsed={isCollapsed} />
+          )}
+          {canManageContent && (
+            <NavItem href="/admin/content" icon={<BookOpen size={18} />} label="Contenido" active={pathname.startsWith('/admin/content')} collapsed={isCollapsed} />
+          )}
+          {canManageUsers && (
             <>
               <NavItem href="/admin/teachers" icon={<GraduationCap size={18} />} label="Profesores" active={pathname.startsWith('/admin/teachers')} collapsed={isCollapsed} />
               <NavItem href="/admin/users" icon={<Users size={18} />} label="Usuarios" active={pathname.startsWith('/admin/users')} collapsed={isCollapsed} />
@@ -58,14 +65,17 @@ export default function AdminSidebar({ role }: { role?: string | null }) {
           )}
         </nav>
 
-        {!isCollapsed && (
-          <p className="text-xs text-foreground/40 font-medium uppercase tracking-widest px-5 mt-6 mb-3">Sistema</p>
+        {canManageUsers && (
+          <>
+            {!isCollapsed && (
+              <p className="text-xs text-foreground/40 font-medium uppercase tracking-widest px-5 mt-6 mb-3">Sistema</p>
+            )}
+            {isCollapsed && <div className="my-4 border-t border-border/30" />}
+            <nav className="flex flex-col gap-1">
+              <NavItem href="/admin/settings" icon={<Settings size={18} />} label="Configuración" active={pathname.startsWith('/admin/settings')} collapsed={isCollapsed} />
+            </nav>
+          </>
         )}
-        {isCollapsed && <div className="my-4 border-t border-border/30" />}
-
-        <nav className="flex flex-col gap-1">
-          <NavItem href="/admin/settings" icon={<Settings size={18} />} label="Configuración" active={pathname.startsWith('/admin/settings')} collapsed={isCollapsed} />
-        </nav>
       </div>
 
       <div className="flex flex-col gap-1">

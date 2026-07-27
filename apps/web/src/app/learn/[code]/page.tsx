@@ -13,7 +13,8 @@ export default async function LevelLessonsPage({
 }: {
   params: Promise<{ code: string }>
 }) {
-  const { code } = await params
+  const { code: rawCode } = await params
+  const code = decodeURIComponent(rawCode) // handles custom codes with spaces (%20)
   const supabase = await createClient()
   const {
     data: { user },

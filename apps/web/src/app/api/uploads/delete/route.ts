@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     }
   } else {
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-    if (!profile || !['superadmin', 'admin', 'teacher'].includes(profile.role)) {
+    if (!profile || !['superadmin', 'teacher'].includes(profile.role)) {
       return NextResponse.json({ error: 'Sin permiso' }, { status: 403 });
     }
   }
