@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, PlusCircle, BookOpen, Settings, FileText } from 'lucide-react';
 import { createClient } from '@/utils/supabase/server';
 import { DeleteLevelButton } from '@/components/dashboard/DeleteLevelButton';
+import { DeleteLessonButton } from '@/components/dashboard/DeleteLessonButton';
 import PublishLevelToggle from './PublishLevelToggle';
 import EditLevelDialog from './EditLevelDialog';
 
@@ -169,6 +170,7 @@ export default async function LevelAdminDashboard({ params }: { params: Promise<
                       Editar Lección
                     </Button>
                   </Link>
+                  <DeleteLessonButton lessonId={lesson.id} lessonTitle={lesson.title} />
                 </div>
               </div>
             );
