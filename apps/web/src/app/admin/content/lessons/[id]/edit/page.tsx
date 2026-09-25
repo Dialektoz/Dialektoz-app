@@ -11,11 +11,14 @@ import { LessonAttemptProvider } from '@/components/learn/LessonAttempt';
 import { QUIZ_EDITOR_TYPES } from '@/lib/exam/grading';
 import { SKILLS, parseSkills, formatSkills } from '@/lib/skills';
 import EditorGuide from '@/components/editor/EditorGuide';
-import { ArrowLeft, Save, Loader2, Check, CloudOff, Eye, EyeOff, Pencil, Clock, BookOpen, ClipboardCheck } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Check, CloudOff, Eye, EyeOff, Pencil, Clock, BookOpen, ClipboardCheck, AlertTriangle, RefreshCw } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 type EditorTab = 'content' | 'quiz';
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+const RETRY_DELAYS_MS = [1000, 3000, 7000];
 
 export default function LessonEditorPage() {
   const router = useRouter();
@@ -44,6 +47,17 @@ export default function LessonEditorPage() {
 
   // Level code for the preview badge: from the URL, or resolved from the lesson.
   const displayLevelCode = levelCode ?? resolvedLevelCode;
+
+  // Local backup key so an edit survives a crash/offline stretch even if the DB write fails.
+  const draftKey = isNew ? `dialektoz:lesson-draft:new:${levelId ?? 'unknown'}` : `dialektoz:lesson-draft:${lessonIdParam}`;
+  const hasUnsavedRef = useRef(false);
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Load existing lesson.
   useEffect(() => {
@@ -98,82 +112,170 @@ export default function LessonEditorPage() {
     };
   }, [title, blocks, quizBlocks, skillType, description, duration, published]);
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    setSaveState('saving');
-    const payload = buildPayload();
-
-    if (isNew) {
-      if (!levelId) {
-        alert('Falta el level_id para saber dónde guardar esta lección.');
-        setIsSaving(false);
-        setSaveState('idle');
-        return;
+  const persistDraftLocally = useCallback(
+    (payload: ReturnType<typeof buildPayload>) => {
+      try {
+        localStorage.setItem(draftKey, JSON.stringify({ payload, savedAt: Date.now() }));
+      } catch {
+        // Private mode / quota exceeded — nothing more we can do client-side.
       }
-      // `order` is assigned automatically by a DB trigger (next slot in level).
-      const { data, error } = await supabase
-        .from('lessons')
-        .insert({ ...payload, level_id: levelId })
-        .select()
-        .single();
-
-      if (error) {
-        console.error(error);
-        setSaveState('error');
-        alert('Error al crear la lección: ' + error.message);
-      } else {
-        setSaveState('saved');
-        router.replace(`/admin/content/lessons/${data.id}/edit`);
-      }
-    } else {
-      const { error } = await supabase.from('lessons').update(payload).eq('id', lessonIdParam);
-      if (error) {
-        console.error(error);
-        setSaveState('error');
-      } else {
-        setSaveState('saved');
-      }
+    },
+    [draftKey]
+  );
+  const clearLocalDraft = useCallback(() => {
+    try {
+      localStorage.removeItem(draftKey);
+    } catch {
+      // ignore
     }
-    setIsSaving(false);
-  };
+  }, [draftKey]);
+
+  // Offer to restore a local backup left behind by a save that exhausted its retries
+  // (e.g. the tab was closed while offline). Runs once, right after the lesson loads.
+  useEffect(() => {
+    if (isLoading) return;
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { payload: ReturnType<typeof buildPayload> };
+      const restore = window.confirm(
+        'Se encontró un borrador sin guardar de una sesión anterior (probablemente por un fallo de conexión). ¿Restaurarlo?'
+      );
+      if (restore) {
+        setTitle(parsed.payload.title === 'Lección sin título' ? '' : parsed.payload.title);
+        setSkillType(parsed.payload.skill_type ?? '');
+        setDescription(parsed.payload.description ?? '');
+        setDuration(parsed.payload.duration_minutes ?? '');
+        setPublished(parsed.payload.published);
+        setBlocks(normalizeBlocks(parsed.payload.content));
+        setQuizBlocks(normalizeBlocks(parsed.payload.quiz));
+      } else {
+        localStorage.removeItem(draftKey);
+      }
+    } catch {
+      // Malformed or inaccessible backup — nothing to recover.
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading]);
 
   // ── Autosave ──────────────────────────────────────────
   // Existing lessons: debounced update. New lessons: the first real edit
   // creates a draft and swaps the URL to the saved lesson, so pressing
-  // "Atrás" never loses work.
+  // "Atrás" never loses work. Failures retry with backoff; if every retry
+  // fails, the edit is backed up to localStorage and surfaced as an error.
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipFirst = useRef(true);
   const creatingDraft = useRef(false);
+
+  const performSave = useCallback(async (): Promise<boolean> => {
+    const payload = buildPayload();
+    const attempts = 1 + RETRY_DELAYS_MS.length;
+
+    for (let attempt = 0; attempt < attempts; attempt++) {
+      if (attempt > 0) await sleep(RETRY_DELAYS_MS[attempt - 1]);
+      setSaveState('saving');
+
+      if (isNew) {
+        if (!levelId || creatingDraft.current) return false;
+        creatingDraft.current = true;
+        // `order` is assigned automatically by a DB trigger (next slot in level).
+        const { data, error } = await supabase
+          .from('lessons')
+          .insert({ ...payload, level_id: levelId })
+          .select()
+          .single();
+        if (!error && data) {
+          hasUnsavedRef.current = false;
+          setSaveState('saved');
+          clearLocalDraft();
+          if (isMountedRef.current) {
+            const qs = `level_id=${levelId}&level_code=${levelCode ?? ''}`;
+            router.replace(`/admin/content/lessons/${data.id}/edit?${qs}`);
+          }
+          return true;
+        }
+        creatingDraft.current = false;
+      } else {
+        const { error } = await supabase.from('lessons').update(payload).eq('id', lessonIdParam);
+        if (!error) {
+          hasUnsavedRef.current = false;
+          setSaveState('saved');
+          clearLocalDraft();
+          return true;
+        }
+      }
+    }
+
+    setSaveState('error');
+    persistDraftLocally(payload);
+    return false;
+  }, [isNew, levelId, levelCode, lessonIdParam, buildPayload, supabase, router, clearLocalDraft, persistDraftLocally]);
+
+  // Always callable with the latest closure from effects that only set up once.
+  const performSaveRef = useRef(performSave);
+  useEffect(() => {
+    performSaveRef.current = performSave;
+  }, [performSave]);
+
+  const handleSave = async () => {
+    if (isNew && !levelId) {
+      alert('Falta el level_id para saber dónde guardar esta lección.');
+      return;
+    }
+    setIsSaving(true);
+    await performSave();
+    setIsSaving(false);
+  };
+
+  // Warn on tab close / browser navigation if there's an edit that hasn't been confirmed saved.
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (!hasUnsavedRef.current) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, []);
+
+  // Last-resort net: if the component unmounts (e.g. clicking away elsewhere in the
+  // admin) while an edit is still unsaved, fire a save instead of just cancelling the timer.
+  useEffect(() => {
+    return () => {
+      if (hasUnsavedRef.current) {
+        if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+        performSaveRef.current();
+      }
+    };
+  }, []);
+
+  const handleBack = async () => {
+    if (hasUnsavedRef.current) {
+      if (isNew && !levelId) {
+        const proceed = window.confirm(
+          'Esta lección no se puede guardar porque falta el nivel. Si sales ahora, perderás los cambios. ¿Salir de todas formas?'
+        );
+        if (!proceed) return;
+      } else {
+        if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+        await performSave();
+      }
+    }
+    router.back();
+  };
+
   useEffect(() => {
     if (isLoading) return;
     if (skipFirst.current) {
       skipFirst.current = false;
       return;
     }
+    hasUnsavedRef.current = true;
     if (isNew && (!levelId || creatingDraft.current)) return;
 
-    setSaveState('saving');
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
-    autosaveTimer.current = setTimeout(async () => {
-      if (isNew) {
-        creatingDraft.current = true;
-        const { data, error } = await supabase
-          .from('lessons')
-          .insert({ ...buildPayload(), level_id: levelId })
-          .select()
-          .single();
-        if (error || !data) {
-          creatingDraft.current = false;
-          setSaveState('error');
-        } else {
-          setSaveState('saved');
-          const qs = `level_id=${levelId}&level_code=${levelCode ?? ''}`;
-          router.replace(`/admin/content/lessons/${data.id}/edit?${qs}`);
-        }
-      } else {
-        const { error } = await supabase.from('lessons').update(buildPayload()).eq('id', lessonIdParam);
-        setSaveState(error ? 'error' : 'saved');
-      }
+    autosaveTimer.current = setTimeout(() => {
+      performSave();
     }, 1500);
     return () => {
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
@@ -191,7 +293,7 @@ export default function LessonEditorPage() {
         <>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
-              <Button variant="ghost" className="mb-2 -ml-3 text-muted-foreground hover:text-foreground" onClick={() => router.back()}>
+              <Button variant="ghost" className="mb-2 -ml-3 text-muted-foreground hover:text-foreground" onClick={handleBack}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 {levelCode ? `Atrás al Nivel ${levelCode}` : 'Atrás'}
               </Button>
@@ -230,6 +332,20 @@ export default function LessonEditorPage() {
               </Button>
             </div>
           </div>
+
+          {saveState === 'error' && (
+            <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span className="flex-1">
+                No se pudieron guardar los últimos cambios tras varios intentos. Se guardó una copia local de seguridad en este
+                navegador — no cierres esta pestaña hasta reintentar.
+              </span>
+              <Button size="sm" variant="outline" className="gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10" onClick={() => performSave()}>
+                <RefreshCw className="w-3.5 h-3.5" />
+                Reintentar
+              </Button>
+            </div>
+          )}
 
           {preview ? (
             <div className="rounded-2xl border border-border bg-background overflow-hidden">
