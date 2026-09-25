@@ -21,9 +21,20 @@ Runtime: **Node 20**.
 
 - **Editor de bloques modular** (`src/components/editor/blocks/`): cada bloque es un
   módulo autocontenido registrado en `registry.ts`. Añadir uno nuevo = crear un
-  archivo + una línea. ~31 tipos: texto, media, layout anidado y actividades.
+  archivo + una línea. ~32 tipos: texto, media, layout anidado y actividades.
+- **Color de texto, dos sistemas**: la mayoría de bloques usan `CText` (color para
+  todo el campo, `src/lib/ctext.ts`); cuando hace falta colorear fragmentos sueltos
+  de texto (ej. una palabra en rojo dentro de una flashcard) se usa el editor Tiptap
+  real en su variante `compact` (`RichTextEditor.tsx`). No mezclar los dos dentro de
+  un mismo campo — ver detalle en la skill `dialektoz_stack`.
+- **Actividades calificables**: un bloque marca `isGradable: true` y reporta con
+  `useGradedActivity()` (`src/components/learn/LessonAttempt.tsx`). El puntaje es
+  todo-o-nada por bloque, sin crédito parcial.
 - **Lecciones en dos partes**: `content` (estudio) y `quiz` (evaluación calificada,
   que alimenta el examen de certificación del nivel).
+- **Autoguardado con reintentos**: el editor de lecciones reintenta el guardado con
+  backoff y respalda en `localStorage` si falla del todo, además de avisar antes de
+  cerrar la pestaña con cambios sin guardar (`lessons/[id]/edit/page.tsx`).
 - **Integridad del progreso**: `user_progress` y `user_activity` son de solo lectura
   para el cliente; toda escritura pasa por el RPC `record_progress` (valida
   autenticación, disponibilidad de la lección, desbloqueo secuencial y calcula el XP).

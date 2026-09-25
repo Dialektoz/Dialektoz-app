@@ -62,7 +62,55 @@ La arquitectura de la base de datos refleja la progresión holística real del p
 5.  **Perfiles y roles (`profiles`):** `student`, `teacher`, `admin`, `superadmin` — ver
     `perf-security` SKILL.md para las reglas de RLS y gating por rol en el middleware.
 
-## 5. Development Language Guidelines
+## 5. Editor de Contenido: Arquitectura de Bloques
+
+Las lecciones (`lessons.content` y `lessons.quiz`, ambos JSON) se arman como una lista de
+bloques. La arquitectura vive en `src/components/editor/blocks/`:
+
+*   **Contrato único** (`blocks/types.ts`): cada bloque exporta un `BlockDefinition` con
+    `type`, `label`, `category`, `createDefault()`, un componente `Editor` (UI en `/admin`) y
+    un componente `Renderer` (vista del alumno). El host (`BlockList.tsx`, `LessonBuilder.tsx`)
+    nunca importa un bloque concreto — todo se resuelve vía `registry.ts`.
+*   **Agregar un bloque nuevo** = crear un archivo en `blocks/<categoria>/` + una línea de
+    import y una entrada en el array `BLOCKS` de `registry.ts`. Nada más del editor/renderer
+    necesita cambiar. ~32 bloques ya registrados (texto, media, layout, actividades).
+*   **Compatibilidad hacia atrás sin migraciones**: cuando cambia la forma de los datos de un
+    bloque (ej. agregar un modo nuevo), el bloque normaliza los datos viejos él mismo al
+    leerlos — no hay migraciones de base de datos para el contenido JSON de las lecciones. Ver
+    `FlashcardsBlock.tsx` (`normalizeCard`) como ejemplo: soporta en el mismo archivo varios
+    formatos históricos de una carta, del más viejo al actual.
+*   **Color de texto — dos sistemas, a propósito, no los mezcles**:
+    *   La mayoría de los bloques usan `CText` (`src/lib/ctext.ts`): texto plano + un color
+        opcional para *todo el campo*. Es el sistema por defecto — liviano, sin dependencias,
+        seguro de importar en el servidor (lo usa el motor de calificación de exámenes).
+    *   Cuando hace falta colorear *fragmentos* de un mismo campo (ej. una palabra en rojo y
+        otra en verde dentro de la misma flashcard), se usa el editor Tiptap real
+        (`RichTextEditor.tsx`, contenido `JSONContent`), con su variante `compact` (sin
+        encabezados/listas, pensada para campos cortos). Ver `FlashcardsBlock.tsx` para el
+        caso de uso real y su normalización desde `CText` viejo hacia `JSONContent`.
+*   **Actividades calificables**: un bloque marca `isGradable: true` y su `Renderer` llama a
+    `useGradedActivity(blockId)` (`src/components/learn/LessonAttempt.tsx`), que devuelve
+    `report(correct: boolean)`. El sistema de puntaje de la lección es **todo-o-nada por
+    bloque** — no hay crédito parcial (ej. `ClassificationBlock`/`SwipeBlock` solo reportan
+    `true` si el alumno acertó el 100% del bloque). Si una actividad futura necesita crédito
+    parcial, eso requiere extender `LessonAttempt.tsx`; hoy no lo soporta.
+*   **Media**: subida de imágenes/archivos vía `UploadDropzone.tsx` + `useR2Upload.ts` (R2
+    presignado). El patrón estándar de un campo de imagen es dropzone **o** URL pegada a
+    mano — ver `ImageBlock.tsx`.
+
+## 6. Autoguardado del editor de lecciones
+
+El editor de lecciones (`src/app/admin/content/lessons/[id]/edit/page.tsx`) autoguarda con
+debounce (1.5s tras dejar de escribir) y:
+
+*   Reintenta hasta 3 veces con backoff (1s/3s/7s) si falla el guardado.
+*   Si todos los reintentos fallan, guarda una copia local en `localStorage` y muestra un
+    banner de error con botón "Reintentar"; al volver a abrir la lección, ofrece restaurar
+    esa copia.
+*   Advierte antes de cerrar la pestaña/navegar si hay cambios sin confirmar (`beforeunload`),
+    y fuerza un guardado antes de que el botón "Atrás" navegue.
+
+## 7. Development Language Guidelines
 
 *   **Code and Documentation:** All code (variables, functions, components), commits, comments,
     and internal documentation **MUST be written in English**.
