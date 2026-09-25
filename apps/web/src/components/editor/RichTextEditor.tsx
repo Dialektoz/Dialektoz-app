@@ -13,15 +13,17 @@ interface RichTextEditorProps {
   content: JSONContent | null;
   onChange: (json: JSONContent) => void;
   editable?: boolean;
+  /** Slimmer toolbar (no headings/lists) and compact sizing, for short fields like a flashcard side. */
+  compact?: boolean;
 }
 
-const MenuBar = ({ editor }: { editor: Editor | null }) => {
+const MenuBar = ({ editor, compact }: { editor: Editor | null; compact?: boolean }) => {
   if (!editor) {
     return null;
   }
 
   return (
-    <div className="flex flex-wrap gap-2 p-2 mb-4 border rounded-md bg-muted/50">
+    <div className={`flex flex-wrap items-center gap-2 border rounded-md bg-muted/50 ${compact ? 'p-1 mb-1.5' : 'p-2 mb-4'}`}>
       <Button
         variant="ghost"
         size="icon"
@@ -49,32 +51,36 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       >
         <Strikethrough className="w-4 h-4" />
       </Button>
-      <div className="w-px h-6 mx-1 bg-border self-center" />
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-        className={editor.isActive('heading', { level: 2 }) ? 'bg-muted text-primary' : ''}
-      >
-        <Heading2 className="w-4 h-4" />
-      </Button>
-      <div className="w-px h-6 mx-1 bg-border self-center" />
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => editor.chain().focus().toggleBulletList().run()}
-        className={editor.isActive('bulletList') ? 'bg-muted text-primary' : ''}
-      >
-        <List className="w-4 h-4" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        className={editor.isActive('orderedList') ? 'bg-muted text-primary' : ''}
-      >
-        <ListOrdered className="w-4 h-4" />
-      </Button>
+      {!compact && (
+        <>
+          <div className="w-px h-6 mx-1 bg-border self-center" />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            className={editor.isActive('heading', { level: 2 }) ? 'bg-muted text-primary' : ''}
+          >
+            <Heading2 className="w-4 h-4" />
+          </Button>
+          <div className="w-px h-6 mx-1 bg-border self-center" />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            className={editor.isActive('bulletList') ? 'bg-muted text-primary' : ''}
+          >
+            <List className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            className={editor.isActive('orderedList') ? 'bg-muted text-primary' : ''}
+          >
+            <ListOrdered className="w-4 h-4" />
+          </Button>
+        </>
+      )}
 
       <div className="w-px h-6 mx-1 bg-border self-center" />
       <div className="flex items-center gap-1">
@@ -103,9 +109,11 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
   );
 };
 
-export const RichTextEditor = ({ content, onChange, editable = true }: RichTextEditorProps) => {
+export const RichTextEditor = ({ content, onChange, editable = true, compact = false }: RichTextEditorProps) => {
   const editor = useEditor({
-    extensions: [StarterKit, TextStyle, Color],
+    extensions: compact
+      ? [StarterKit.configure({ heading: false, bulletList: false, orderedList: false, blockquote: false, codeBlock: false }), TextStyle, Color]
+      : [StarterKit, TextStyle, Color],
     content: content || {},
     editable,
     immediatelyRender: false,
@@ -118,14 +126,16 @@ export const RichTextEditor = ({ content, onChange, editable = true }: RichTextE
         // Only `prose prose-invert` (+ size). The responsive `sm:prose`/`lg:prose-lg`
         // variants re-declared the body color inside their media queries and
         // overrode the dark-theme inversion, leaving text dark on desktop.
-        class: 'prose prose-invert prose-sm max-w-none focus:outline-none min-h-[200px] p-4 w-full text-foreground',
+        class: compact
+          ? 'prose prose-invert prose-sm max-w-none focus:outline-none min-h-[40px] p-2 text-sm w-full text-foreground [&_p]:my-0'
+          : 'prose prose-invert prose-sm max-w-none focus:outline-none min-h-[200px] p-4 w-full text-foreground',
       },
     },
   });
 
   return (
     <div className="w-full">
-      {editable && <MenuBar editor={editor} />}
+      {editable && <MenuBar editor={editor} compact={compact} />}
       <EditorContent editor={editor} />
     </div>
   );
