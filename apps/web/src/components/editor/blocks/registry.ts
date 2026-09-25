@@ -33,6 +33,7 @@ import { FlashcardsBlock } from './interactive/FlashcardsBlock';
 import { OrderingBlock } from './interactive/OrderingBlock';
 import { MatchingBlock } from './interactive/MatchingBlock';
 import { ClassificationBlock } from './interactive/ClassificationBlock';
+import { SwipeBlock } from './interactive/SwipeBlock';
 import { EssayBlock } from './interactive/EssayBlock';
 import { ImageHotspotBlock } from './interactive/ImageHotspotBlock';
 import { ImageLabelingBlock } from './interactive/ImageLabelingBlock';
@@ -72,6 +73,7 @@ export const BLOCKS: BlockDefinition[] = [
   OrderingBlock,
   MatchingBlock,
   ClassificationBlock,
+  SwipeBlock,
   EssayBlock,
   ImageHotspotBlock,
   ImageLabelingBlock,
