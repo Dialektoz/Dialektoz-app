@@ -6,6 +6,7 @@ import Link from "next/link";
 import AddTeacherForm from "../AddTeacherForm";
 import RevokeButton from "./RevokeButton";
 import ResendInviteButton from "./ResendInviteButton";
+import GenerateRecoveryLinkButton from "../GenerateRecoveryLinkButton";
 
 export const metadata = {
   title: "Profesores | Admin Dialektoz",
@@ -111,6 +112,10 @@ export default async function TeachersPage() {
                       {!teacher.onboarding_completed && (
                         <ResendInviteButton userId={teacher.id} />
                       )}
+                      <GenerateRecoveryLinkButton
+                        userId={teacher.id}
+                        userName={[teacher.first_name, teacher.last_name].filter(Boolean).join(" ") || undefined}
+                      />
                       <RevokeButton userId={teacher.id} />
                     </div>
                   </td>

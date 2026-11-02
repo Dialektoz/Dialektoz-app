@@ -110,7 +110,20 @@ debounce (1.5s tras dejar de escribir) y:
 *   Advierte antes de cerrar la pestaña/navegar si hay cambios sin confirmar (`beforeunload`),
     y fuerza un guardado antes de que el botón "Atrás" navegue.
 
-## 7. Development Language Guidelines
+## 7. Recuperación de acceso por un admin
+
+Si el correo de recuperación no llega (o cae en spam), un admin/superadmin puede generar un
+enlace de un solo uso desde `/admin/users` o `/admin/teachers` (botón "Generar enlace",
+`GenerateRecoveryLinkButton` + server action `generateRecoveryLink` en `admin/actions.ts`).
+
+*   El admin nunca ve ni fija la contraseña: el enlace solo deja a la persona crear la suya.
+*   El enlace apunta a `/auth/recover`, que canjea el token **solo al pulsar "Continuar"**
+    (nunca en el GET), para que las vistas previas de WhatsApp/correo no lo consuman.
+*   La jerarquía vive en `canResetPasswordFor` (`admin/roles.ts`) y se valida en el servidor:
+    un admin no puede generar enlaces para admins/superadmins; nadie para un superadmin.
+*   El vencimiento es el ajuste global de Supabase (Authentication → Email → OTP expiration).
+
+## 8. Development Language Guidelines
 
 *   **Code and Documentation:** All code (variables, functions, components), commits, comments,
     and internal documentation **MUST be written in English**.
