@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react'
 import { Search, Users } from 'lucide-react'
 import RoleSelector from './RoleSelector'
-import { ALL_ROLES, ROLE_LABEL } from '../roles'
+import GenerateRecoveryLinkButton from '../GenerateRecoveryLinkButton'
+import { ALL_ROLES, ROLE_LABEL, canResetPasswordFor } from '../roles'
 
 type UserRow = {
   id: string
@@ -84,6 +85,7 @@ export default function UsersTable({ users, actorRole }: { users: UserRow[]; act
                 <th className="text-left px-6 py-4 font-medium">Apellido</th>
                 <th className="text-left px-6 py-4 font-medium">Correo</th>
                 <th className="text-left px-6 py-4 font-medium">Rol</th>
+                <th className="text-left px-6 py-4 font-medium">Acceso</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -96,6 +98,16 @@ export default function UsersTable({ users, actorRole }: { users: UserRow[]; act
                   <td className="px-6 py-4 text-foreground/70">{u.email ?? '—'}</td>
                   <td className="px-6 py-4">
                     <RoleSelector userId={u.id} currentRole={u.role ?? 'free'} actorRole={actorRole} />
+                  </td>
+                  <td className="px-6 py-4">
+                    {canResetPasswordFor(actorRole, u.role ?? 'free') ? (
+                      <GenerateRecoveryLinkButton
+                        userId={u.id}
+                        userName={[u.first_name, u.last_name].filter(Boolean).join(' ') || undefined}
+                      />
+                    ) : (
+                      <span className="text-foreground/30">—</span>
+                    )}
                   </td>
                 </tr>
               ))}

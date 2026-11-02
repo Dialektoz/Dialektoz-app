@@ -65,6 +65,21 @@ export function canAssignRole(actor: string, targetCurrent: string, newRole: str
   return true
 }
 
+/**
+ * Can `actor` hand out a password-recovery link for a user at `targetRole`?
+ * A recovery link is a login credential, so this follows the same hierarchy as
+ * role changes: an admin must never be able to take over an admin/superadmin.
+ *   - Superadmin accounts: nobody (they use the normal "forgot password" flow).
+ *   - Admin accounts: superadmin only.
+ *   - Everyone else: admin and superadmin.
+ */
+export function canResetPasswordFor(actor: string, targetRole: string): boolean {
+  if (actor !== 'admin' && actor !== 'superadmin') return false
+  if (targetRole === 'superadmin') return false
+  if (targetRole === 'admin') return actor === 'superadmin'
+  return true
+}
+
 /** Whether the actor can change this target's role at all (drives the UI). */
 export function canManageTarget(actor: string, targetCurrent: string): boolean {
   return assignableRolesFor(actor).some((r) => canAssignRole(actor, targetCurrent, r))

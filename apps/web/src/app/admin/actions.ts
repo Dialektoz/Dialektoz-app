@@ -1,9 +1,10 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { headers } from 'next/headers'
 import { createClient } from '@/utils/supabase/server'
 import { createAdminClient } from '@/utils/supabase/admin'
-import { isRole, canAssignRole, type Role } from './roles'
+import { isRole, canAssignRole, canResetPasswordFor, type Role } from './roles'
 
 /** Returns the current user's id + role, or throws if not staff-admin. */
 async function requireActor(): Promise<{ id: string; role: Role }> {
@@ -135,6 +136,62 @@ export async function resendTeacherInvite(userId: string): Promise<{ success?: b
   }
 
   return { success: true, email }
+}
+
+async function getSiteOrigin(): Promise<string> {
+  const fromEnv = process.env.NEXT_PUBLIC_SITE_URL
+  if (fromEnv) return fromEnv.replace(/\/$/, '')
+  const h = await headers()
+  const host = h.get('x-forwarded-host') ?? h.get('host')
+  const proto = h.get('x-forwarded-proto') ?? 'https'
+  return host ? `${proto}://${host}` : 'http://localhost:3000'
+}
+
+/**
+ * Generate a one-time password-recovery link an admin can hand over directly
+ * (e.g. via WhatsApp) when the recovery email never arrives or lands in spam.
+ *
+ * The admin never learns or sets the password: the link only lets the target
+ * user pick their own. It points at /auth/recover (a confirmation page) rather
+ * than redeeming on GET, so link previews and email scanners can't burn the
+ * single-use token before the person opens it. Expiry is Supabase's global
+ * OTP expiry setting (Authentication → Email → OTP expiration).
+ *
+ * The link is a login credential, so the actor/target hierarchy is enforced
+ * here on the server (canResetPasswordFor), not just hidden in the UI.
+ * The token itself is never logged or stored.
+ */
+export async function generateRecoveryLink(
+  userId: string,
+): Promise<{ link?: string; error?: string }> {
+  const actor = await requireActor()
+  const adminClient = createAdminClient()
+
+  const { data: target } = await adminClient
+    .from('profiles')
+    .select('id, role')
+    .eq('id', userId)
+    .single()
+
+  if (!target) return { error: 'Usuario no encontrado.' }
+  if (!canResetPasswordFor(actor.role, target.role ?? 'free')) {
+    return { error: 'No tienes permiso para generar un enlace para este usuario.' }
+  }
+
+  const { data: authUser, error: getUserError } = await adminClient.auth.admin.getUserById(userId)
+  const email = authUser?.user?.email
+  if (getUserError || !email) return { error: 'No se pudo obtener el correo del usuario.' }
+
+  const { data, error } = await adminClient.auth.admin.generateLink({ type: 'recovery', email })
+  const tokenHash = data?.properties?.hashed_token
+  if (error || !tokenHash) return { error: error?.message ?? 'No se pudo generar el enlace.' }
+
+  console.log(
+    `[generateRecoveryLink] actor=${actor.id} target=${userId} at=${new Date().toISOString()}`,
+  )
+
+  const origin = await getSiteOrigin()
+  return { link: `${origin}/auth/recover?token_hash=${encodeURIComponent(tokenHash)}&type=recovery` }
 }
 
 /**
