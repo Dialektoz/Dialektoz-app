@@ -22,7 +22,7 @@ export default async function LessonViewPage({
 
   const { data: lesson } = await supabase
     .from('lessons')
-    .select('id, title, description, skill_type, duration_minutes, content, quiz, published, level_id')
+    .select('id, title, description, skill_type, duration_minutes, content, quiz, published, level_id, author_name')
     .eq('id', lessonId)
     .single()
 
@@ -101,6 +101,9 @@ export default async function LessonViewPage({
               )}
             </div>
             <h1 className="text-4xl font-bold text-foreground tracking-tight">{lesson.title}</h1>
+            {lesson.author_name && (
+              <p className="text-foreground/50 mt-2 text-sm">Por {lesson.author_name}</p>
+            )}
             {lesson.description && (
               <p className="text-foreground/60 mt-3 text-lg">{lesson.description}</p>
             )}

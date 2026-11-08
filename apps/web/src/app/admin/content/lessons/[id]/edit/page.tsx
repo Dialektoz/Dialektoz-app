@@ -39,6 +39,11 @@ export default function LessonEditorPage() {
   const [description, setDescription] = useState('');
   const [duration, setDuration] = useState<number | ''>('');
   const [published, setPublished] = useState(false);
+  // Credited author shown to students. Only sent to the DB once someone edits it, so a
+  // new lesson lets the DB trigger fill it in and an untouched one is never overwritten.
+  const [authorName, setAuthorName] = useState('');
+  const [authorEdits, setAuthorEdits] = useState(0);
+  const authorTouchedRef = useRef(false);
   const [blocks, setBlocks] = useState<BlockInstance[]>([createBlock('heading')]);
   const [quizBlocks, setQuizBlocks] = useState<BlockInstance[]>([]);
   const [tab, setTab] = useState<EditorTab>('content');
@@ -68,7 +73,7 @@ export default function LessonEditorPage() {
       }
       const { data, error } = await supabase
         .from('lessons')
-        .select('title, content, quiz, skill_type, description, published, duration_minutes, level_id')
+        .select('title, content, quiz, skill_type, description, published, duration_minutes, level_id, author_name')
         .eq('id', lessonIdParam)
         .single();
 
@@ -80,6 +85,7 @@ export default function LessonEditorPage() {
         setDescription(data.description || '');
         setDuration(data.duration_minutes ?? '');
         setPublished(!!data.published);
+        setAuthorName(data.author_name ?? '');
         const normalized = normalizeBlocks(data.content);
         if (normalized.length > 0) setBlocks(normalized);
         setQuizBlocks(normalizeBlocks(data.quiz));
@@ -101,7 +107,16 @@ export default function LessonEditorPage() {
       finalTitle = (first.data as { text?: string })?.text ?? '';
     }
     if (!finalTitle) finalTitle = 'Lección sin título';
-    return {
+    const payload: {
+      title: string;
+      content: BlockInstance[];
+      quiz: BlockInstance[];
+      skill_type: string | null;
+      description: string | null;
+      duration_minutes: number | null;
+      published: boolean;
+      author_name?: string | null;
+    } = {
       title: finalTitle,
       content: blocks,
       quiz: quizBlocks,
@@ -110,7 +125,9 @@ export default function LessonEditorPage() {
       duration_minutes: duration === '' ? null : Number(duration),
       published,
     };
-  }, [title, blocks, quizBlocks, skillType, description, duration, published]);
+    if (authorTouchedRef.current) payload.author_name = authorName.trim() || null;
+    return payload;
+  }, [title, blocks, quizBlocks, skillType, description, duration, published, authorName]);
 
   const persistDraftLocally = useCallback(
     (payload: ReturnType<typeof buildPayload>) => {
@@ -147,6 +164,10 @@ export default function LessonEditorPage() {
         setDescription(parsed.payload.description ?? '');
         setDuration(parsed.payload.duration_minutes ?? '');
         setPublished(parsed.payload.published);
+        if ('author_name' in parsed.payload) {
+          authorTouchedRef.current = true;
+          setAuthorName(parsed.payload.author_name ?? '');
+        }
         setBlocks(normalizeBlocks(parsed.payload.content));
         setQuizBlocks(normalizeBlocks(parsed.payload.quiz));
       } else {
@@ -188,6 +209,8 @@ export default function LessonEditorPage() {
           hasUnsavedRef.current = false;
           setSaveState('saved');
           clearLocalDraft();
+          // The DB trigger may have filled in the author; show it (and don't overwrite it later).
+          if (!authorTouchedRef.current) setAuthorName(data.author_name ?? '');
           if (isMountedRef.current) {
             const qs = `level_id=${levelId}&level_code=${levelCode ?? ''}`;
             router.replace(`/admin/content/lessons/${data.id}/edit?${qs}`);
@@ -281,7 +304,7 @@ export default function LessonEditorPage() {
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, skillType, description, duration, published, blocks, quizBlocks]);
+  }, [title, skillType, description, duration, published, blocks, quizBlocks, authorEdits]);
 
   return (
     <div className="py-6 px-6 lg:px-10 max-w-5xl mx-auto w-full">
@@ -387,6 +410,7 @@ export default function LessonEditorPage() {
                       )}
                     </div>
                     <h1 className="text-4xl font-bold text-foreground tracking-tight">{title || 'Lección sin título'}</h1>
+                    {authorName && <p className="text-foreground/50 mt-2 text-sm">Por {authorName}</p>}
                     {description && <p className="text-foreground/60 mt-3 text-lg">{description}</p>}
                   </div>
 
@@ -449,6 +473,21 @@ export default function LessonEditorPage() {
                   <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">Descripción corta</label>
                   <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} className="w-full text-sm bg-background border border-border p-3 rounded-xl outline-none text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary" placeholder="Resumen para la lista (opcional)" />
                 </div>
+              </div>
+
+              <div className="mb-6 max-w-md">
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">Autor (lo ven los estudiantes)</label>
+                <input
+                  type="text"
+                  value={authorName}
+                  onChange={(e) => {
+                    authorTouchedRef.current = true;
+                    setAuthorName(e.target.value);
+                    setAuthorEdits((n) => n + 1);
+                  }}
+                  className="w-full text-sm bg-background border border-border p-3 rounded-xl outline-none text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                  placeholder="Se asigna a tu nombre al guardar por primera vez"
+                />
               </div>
 
               <div className="mb-6 flex items-center gap-3">
