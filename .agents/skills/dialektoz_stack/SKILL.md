@@ -139,7 +139,17 @@ Cada lección guarda su autor en `lessons.author_name` (texto que ven los estudi
 *   **Orden de despliegue:** aplicar `20261108180000_lesson_author.sql` en producción **antes** de
     desplegar el código que lee `author_name`.
 
-## 9. Development Language Guidelines
+## 9. Importador de lecciones (opcional)
+
+`apps/web/scripts/import-lesson/` crea o actualiza una lección desde una carpeta con `lesson.json`
+y sus imágenes (`npm run import:lesson -- <carpeta> [--apply]`; simulación por defecto). Es un
+extra local: el editor sigue siendo la vía principal y el importador no cambia esquema, RLS ni
+bloques. Usa el service role (se salta RLS) y las llaves de R2 desde `apps/web/.env.local`, que no
+se commitea. Los validadores de bloques **replican a mano** las formas de `createDefault`; si se
+cambia el formato de un bloque soportado (heading, text, callout, quote, image, gallery, table,
+divider), hay que actualizar `scripts/import-lesson/validate.ts`. Detalles en su README.
+
+## 10. Development Language Guidelines
 
 *   **Code and Documentation:** All code (variables, functions, components), commits, comments,
     and internal documentation **MUST be written in English**.
