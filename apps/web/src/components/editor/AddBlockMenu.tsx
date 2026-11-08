@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search } from 'lucide-react';
+import { Search, Upload } from 'lucide-react';
 import { blocksByCategory } from './blocks/registry';
 import { CATEGORY_LABELS } from './blocks/types';
 
@@ -12,9 +12,11 @@ interface AddBlockMenuProps {
   onClose: () => void;
   /** Restrict the picker to these block types (used by the quiz tab). */
   allowedTypes?: string[];
+  /** When set, a pinned "Importar desde JSON" entry is shown (top-level lesson canvas only). */
+  onImport?: () => void;
 }
 
-export function AddBlockMenu({ onPick, onClose, allowedTypes }: AddBlockMenuProps) {
+export function AddBlockMenu({ onPick, onClose, allowedTypes, onImport }: AddBlockMenuProps) {
   const [query, setQuery] = useState('');
   const panelRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -125,6 +127,24 @@ export function AddBlockMenu({ onPick, onClose, allowedTypes }: AddBlockMenuProp
         </div>
       ))}
       </div>
+
+      {onImport && (
+        <div className="shrink-0 border-t border-border/60 bg-card p-2">
+          <button
+            type="button"
+            onClick={onImport}
+            className="w-full flex items-center gap-2.5 p-2 rounded-lg hover:bg-muted text-left border border-transparent hover:border-border transition-colors"
+          >
+            <div className="bg-primary/10 text-primary p-1.5 rounded-md shrink-0">
+              <Upload className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <h4 className="font-medium text-sm">Importar desde JSON</h4>
+              <p className="text-[11px] text-muted-foreground">Inserta bloques e imágenes desde un lesson.json</p>
+            </div>
+          </button>
+        </div>
+      )}
     </motion.div>
   );
 }

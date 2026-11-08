@@ -139,15 +139,27 @@ Cada lección guarda su autor en `lessons.author_name` (texto que ven los estudi
 *   **Orden de despliegue:** aplicar `20261108180000_lesson_author.sql` en producción **antes** de
     desplegar el código que lee `author_name`.
 
-## 9. Importador de lecciones (opcional)
+## 9. Importar lecciones desde JSON (opcional)
 
-`apps/web/scripts/import-lesson/` crea o actualiza una lección desde una carpeta con `lesson.json`
-y sus imágenes (`npm run import:lesson -- <carpeta> [--apply]`; simulación por defecto). Es un
-extra local: el editor sigue siendo la vía principal y el importador no cambia esquema, RLS ni
-bloques. Usa el service role (se salta RLS) y las llaves de R2 desde `apps/web/.env.local`, que no
-se commitea. Los validadores de bloques **replican a mano** las formas de `createDefault`; si se
-cambia el formato de un bloque soportado (heading, text, callout, quote, image, gallery, table,
-divider), hay que actualizar `scripts/import-lesson/validate.ts`. Detalles en su README.
+Hay dos vías, ambas extras: el editor de bloques sigue siendo la vía principal y ninguna cambia
+esquema, RLS ni tipos de bloque. Las dos comparten el validador `src/lib/lessonImport.ts`.
+
+*   **En el editor:** botón "Importar desde JSON" fijo en el pie del menú "+" de la pestaña
+    Contenido (`AddBlockMenu` → `ImportLessonDialog`). Pegas un `lesson.json` (o una lista de
+    bloques) y eliges las imágenes; se validan, se suben a R2 con `useR2Upload` y los bloques se
+    **insertan** en la lección abierta; los campos vacíos (título, descripción, skills, duración,
+    autor) se completan, nunca se pisan. Corre con la sesión del usuario (solo superadmin/teacher
+    llegan al editor) y el autoguardado normal lo persiste. No aparece en Evaluación ni dentro de
+    columnas/contenedores.
+*   **Comando local** `apps/web/scripts/import-lesson/` (`npm run import:lesson -- <carpeta>
+    [--apply]`; simulación por defecto): crea o actualiza una lección completa por (nivel, orden).
+    Usa el service role (se salta RLS) y las llaves de R2 desde `apps/web/.env.local`, que no se
+    commitea.
+
+Los validadores de bloques **replican a mano** las formas de `createDefault`; si se cambia el
+formato de un bloque soportado (heading, text, callout, quote, image, gallery, table, divider),
+hay que actualizar `src/lib/lessonImport.ts`. El módulo no tiene imports a propósito (corre en el
+navegador y en Node): quien lo llama le pasa la lista de skills.
 
 ## 10. Development Language Guidelines
 

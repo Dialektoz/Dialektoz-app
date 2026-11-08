@@ -11,6 +11,8 @@ import { LessonAttemptProvider } from '@/components/learn/LessonAttempt';
 import { QUIZ_EDITOR_TYPES } from '@/lib/exam/grading';
 import { SKILLS, parseSkills, formatSkills } from '@/lib/skills';
 import EditorGuide from '@/components/editor/EditorGuide';
+import { ImportLessonDialog } from '@/components/editor/ImportLessonDialog';
+import type { ImportResult } from '@/components/editor/ImportLessonDialog';
 import { ArrowLeft, Save, Loader2, Check, CloudOff, Eye, EyeOff, Pencil, Clock, BookOpen, ClipboardCheck, AlertTriangle, RefreshCw } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 
@@ -48,6 +50,10 @@ export default function LessonEditorPage() {
   const [quizBlocks, setQuizBlocks] = useState<BlockInstance[]>([]);
   const [tab, setTab] = useState<EditorTab>('content');
   const [preview, setPreview] = useState(false);
+  // JSON import dialog: index to insert at (null = closed). Bumping builderKey re-mounts the
+  // content LessonBuilder, which only copies its initial blocks on mount, so it shows the import.
+  const [importAt, setImportAt] = useState<number | null>(null);
+  const [builderKey, setBuilderKey] = useState(0);
   const [resolvedLevelCode, setResolvedLevelCode] = useState<string | null>(null);
 
   // Level code for the preview badge: from the URL, or resolved from the lesson.
@@ -248,6 +254,48 @@ export default function LessonEditorPage() {
     setIsSaving(true);
     await performSave();
     setIsSaving(false);
+  };
+
+  // Insert imported blocks at `importAt` and fill in EMPTY lesson fields (never overwrites).
+  // Returns the names of the fields that were filled, for the dialog summary.
+  const applyImport = ({ blocks: incoming, fields }: ImportResult): string[] => {
+    const at = importAt ?? blocks.length;
+    const isEmptyText = (v: unknown) => !(typeof v === 'string' ? v : (v as { t?: string } | null)?.t ?? '').trim();
+    setBlocks((prev) => {
+      // A fresh lesson only has the empty starter heading: replace it instead of keeping it.
+      if (prev.length === 1 && prev[0].type === 'heading' && isEmptyText((prev[0].data as { text?: unknown })?.text)) {
+        return incoming;
+      }
+      const next = [...prev];
+      next.splice(Math.min(at, next.length), 0, ...incoming);
+      return next;
+    });
+    setBuilderKey((k) => k + 1);
+
+    const filled: string[] = [];
+    if (fields.title && !title.trim()) {
+      setTitle(fields.title);
+      filled.push('title');
+    }
+    if (fields.description && !description.trim()) {
+      setDescription(fields.description);
+      filled.push('description');
+    }
+    if (fields.skill_type && !skillType.trim()) {
+      setSkillType(fields.skill_type);
+      filled.push('skill_type');
+    }
+    if (fields.duration_minutes !== null && duration === '') {
+      setDuration(fields.duration_minutes);
+      filled.push('duration_minutes');
+    }
+    if (fields.author && !authorName.trim()) {
+      authorTouchedRef.current = true;
+      setAuthorName(fields.author);
+      setAuthorEdits((n) => n + 1);
+      filled.push('author');
+    }
+    return filled;
   };
 
   // Warn on tab close / browser navigation if there's an edit that hasn't been confirmed saved.
@@ -519,7 +567,12 @@ export default function LessonEditorPage() {
 
               <div className="min-h-[500px]">
                 {tab === 'content' ? (
-                  <LessonBuilder key="content" initialBlocks={blocks} onChange={setBlocks} />
+                  <LessonBuilder
+                    key={`content-${builderKey}`}
+                    initialBlocks={blocks}
+                    onChange={setBlocks}
+                    onImport={(insertAt) => setImportAt(insertAt)}
+                  />
                 ) : (
                   <LessonBuilder
                     key="quiz"
@@ -534,6 +587,8 @@ export default function LessonEditorPage() {
           )}
         </>
       )}
+
+      {importAt !== null && <ImportLessonDialog onClose={() => setImportAt(null)} onApply={applyImport} />}
     </div>
   );
 }

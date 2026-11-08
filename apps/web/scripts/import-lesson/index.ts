@@ -18,8 +18,9 @@ import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
 import { loadEnvFile, readEnv } from './env.ts';
 import { R2_ENV, contentTypeFor, createR2, imageKey, publicUrlFor } from './r2.ts';
-import { buildBlocks, deepEqual, validateLesson } from './validate.ts';
-import type { BlockInstance } from './validate.ts';
+import { SKILLS } from '../../src/lib/skills.ts';
+import { buildBlocks, deepEqual, validateLesson } from '../../src/lib/lessonImport.ts';
+import type { BlockInstance } from '../../src/lib/lessonImport.ts';
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const MIGRATION = '20261108180000_lesson_author.sql';
@@ -57,9 +58,11 @@ async function main() {
     die([`lesson.json no es JSON válido: ${(e as Error).message}`]);
   }
 
-  const lesson = validateLesson(raw);
+  const lesson = validateLesson(raw, { skills: SKILLS, mode: 'cli' });
   if (!lesson.fields || !lesson.content) die(lesson.errors);
-  const fields = lesson.fields;
+  const { level: levelCode, order: lessonOrder, title: lessonTitle } = lesson.fields;
+  if (levelCode === null || lessonOrder === null || lessonTitle === null) die(['Faltan level, order o title.']);
+  const fields = { ...lesson.fields, level: levelCode, order: lessonOrder, title: lessonTitle };
 
   const errors: string[] = [];
   const firstPass = new Set<string>();

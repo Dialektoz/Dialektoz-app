@@ -17,6 +17,8 @@ interface BlockCanvasProps {
   emptyLabel?: string;
   /** Restrict which block types can be added (used by the quiz tab). */
   allowedTypes?: string[];
+  /** Top-level lesson canvas only: open the JSON import dialog to insert blocks at `insertAt`. */
+  onImport?: (insertAt: number) => void;
 }
 
 /**
@@ -24,7 +26,7 @@ interface BlockCanvasProps {
  * level (via LessonBuilder) and recursively inside container blocks
  * (columns, sections), which is what enables nested layouts.
  */
-export function BlockCanvas({ blocks, onChange, nested = false, emptyLabel = 'AÃ±adir bloque', allowedTypes }: BlockCanvasProps) {
+export function BlockCanvas({ blocks, onChange, nested = false, emptyLabel = 'AÃ±adir bloque', allowedTypes, onImport }: BlockCanvasProps) {
   const [addMenuIndex, setAddMenuIndex] = useState<number | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
@@ -121,6 +123,7 @@ export function BlockCanvas({ blocks, onChange, nested = false, emptyLabel = 'AÃ
                     onPick={(type) => addBlock(index, type)}
                     onClose={() => setAddMenuIndex(null)}
                     allowedTypes={allowedTypes}
+                    onImport={onImport && (() => { setAddMenuIndex(null); onImport(index + 1); })}
                   />
                 )}
               </AnimatePresence>
@@ -145,6 +148,7 @@ export function BlockCanvas({ blocks, onChange, nested = false, emptyLabel = 'AÃ
                 onPick={(type) => addBlock(-1, type)}
                 onClose={() => setAddMenuIndex(null)}
                 allowedTypes={allowedTypes}
+                onImport={onImport && (() => { setAddMenuIndex(null); onImport(0); })}
               />
             )}
           </AnimatePresence>

@@ -14,6 +14,8 @@ interface LessonBuilderProps {
   /** Restrict which block types can be added (used by the quiz tab). */
   allowedTypes?: string[];
   emptyLabel?: string;
+  /** Show "Importar desde JSON" in the add-block menu; called with the index to insert at. */
+  onImport?: (insertAt: number) => void;
 }
 
 export function LessonBuilder({
@@ -21,6 +23,7 @@ export function LessonBuilder({
   onChange,
   allowedTypes,
   emptyLabel = 'Añadir el primer bloque',
+  onImport,
 }: LessonBuilderProps) {
   const [blocks, setBlocks] = useState<BlockInstance[]>(
     initialBlocks.length > 0 ? initialBlocks : [createBlock('heading')]
@@ -32,6 +35,6 @@ export function LessonBuilder({
   };
 
   return (
-    <BlockCanvas blocks={blocks} onChange={commit} emptyLabel={emptyLabel} allowedTypes={allowedTypes} />
+    <BlockCanvas blocks={blocks} onChange={commit} emptyLabel={emptyLabel} allowedTypes={allowedTypes} onImport={onImport} />
   );
 }
