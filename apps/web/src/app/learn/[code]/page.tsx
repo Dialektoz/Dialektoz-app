@@ -8,6 +8,7 @@ import { createClient } from '@/utils/supabase/server'
 import { ArrowLeft, BookOpen, Clock, Play, CheckCircle2, Lock } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { getCompletedLessonIds, computeUnlocked } from '@/lib/learning'
+import { summarizeAuthors, formatAuthorLine } from '@/lib/authors'
 
 export default async function LevelLessonsPage({
   params,
@@ -29,12 +30,13 @@ export default async function LevelLessonsPage({
 
   const { data: lessons } = await supabase
     .from('lessons')
-    .select('id, title, description, skill_type, duration_minutes, "order"')
+    .select('id, title, description, skill_type, duration_minutes, "order", author_name')
     .eq('level_id', level.id)
     .eq('published', true)
     .order('order', { ascending: true })
 
   const realLessons = lessons || []
+  const authorLine = formatAuthorLine(summarizeAuthors(realLessons.map((l) => l.author_name)))
   const completed = await getCompletedLessonIds(supabase, user?.id ?? null, realLessons.map((l) => l.id))
   const percent = realLessons.length ? Math.round((completed.size / realLessons.length) * 100) : 0
   const unlocked = computeUnlocked(realLessons, completed)
@@ -59,6 +61,7 @@ export default async function LevelLessonsPage({
             <span className="text-4xl font-black text-primary block mb-2">{level.code}</span>
             <h1 className="text-3xl font-bold text-foreground mb-3 tracking-tight">{level.title}</h1>
             <p className="text-foreground/60 max-w-2xl">{level.description}</p>
+            {authorLine && <p className="text-sm text-foreground/50 mt-2">{authorLine}</p>}
 
             {realLessons.length > 0 && (
               <div className="mt-5 max-w-md">

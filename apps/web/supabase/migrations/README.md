@@ -22,6 +22,7 @@ aplican en orden alfabético (que es orden cronológico).
 | `20260723212231_certification_schema.sql` | Exámenes, intentos y certificados |
 | `20260723212251_certificate_verification.sql` | Verificación pública del certificado y horas del nivel |
 | `20260723213440_lesson_quiz_section.sql` | Separa cada lección en Contenido y Evaluación |
+| `20261108180000_lesson_author.sql` | Autor por lección (`author_name`, `author_id`), se llena solo al crear. **Aplicar en producción antes de desplegar el código que lo lee** |
 
 ## Nota importante sobre el baseline
 

@@ -123,6 +123,22 @@ enlace de un solo uso desde `/admin/users` o `/admin/teachers` (botón "Generar 
     un admin no puede generar enlaces para admins/superadmins; nadie para un superadmin.
 *   El vencimiento es el ajuste global de Supabase (Authentication → Email → OTP expiration).
 
+## 8. Autoría por lección
+
+Cada lección guarda su autor en `lessons.author_name` (texto que ven los estudiantes) y
+`lessons.author_id` (cuenta que la creó; queda en nulo si se borra). El trigger
+`set_lesson_author` los llena al crear la lección con el usuario que la crea.
+
+*   Solo superadmin y teacher pueden cambiarlo (ya lo impone la RLS de `lessons`, `is_staff()`),
+    desde el campo "Autor" del editor. El editor solo envía `author_name` cuando alguien lo edita,
+    para no pisar el valor que puso el trigger.
+*   Se muestra en la lección ("Por X"), en el nivel ("Autores: …", `lib/authors.ts`) y en la
+    tarjeta del nivel (autor con más lecciones, o el creador del nivel como respaldo).
+*   Las lecciones anteriores a la migración no tienen autor y no muestran nada; se asignan a mano
+    con un `update` (ejemplo comentado en la migración).
+*   **Orden de despliegue:** aplicar `20261108180000_lesson_author.sql` en producción **antes** de
+    desplegar el código que lee `author_name`.
+
 ## 9. Importador de lecciones (opcional)
 
 `apps/web/scripts/import-lesson/` crea o actualiza una lección desde una carpeta con `lesson.json`
