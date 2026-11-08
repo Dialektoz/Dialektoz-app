@@ -123,7 +123,17 @@ enlace de un solo uso desde `/admin/users` o `/admin/teachers` (botón "Generar 
     un admin no puede generar enlaces para admins/superadmins; nadie para un superadmin.
 *   El vencimiento es el ajuste global de Supabase (Authentication → Email → OTP expiration).
 
-## 8. Development Language Guidelines
+## 9. Importador de lecciones (opcional)
+
+`apps/web/scripts/import-lesson/` crea o actualiza una lección desde una carpeta con `lesson.json`
+y sus imágenes (`npm run import:lesson -- <carpeta> [--apply]`; simulación por defecto). Es un
+extra local: el editor sigue siendo la vía principal y el importador no cambia esquema, RLS ni
+bloques. Usa el service role (se salta RLS) y las llaves de R2 desde `apps/web/.env.local`, que no
+se commitea. Los validadores de bloques **replican a mano** las formas de `createDefault`; si se
+cambia el formato de un bloque soportado (heading, text, callout, quote, image, gallery, table,
+divider), hay que actualizar `scripts/import-lesson/validate.ts`. Detalles en su README.
+
+## 10. Development Language Guidelines
 
 *   **Code and Documentation:** All code (variables, functions, components), commits, comments,
     and internal documentation **MUST be written in English**.

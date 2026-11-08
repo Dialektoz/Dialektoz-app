@@ -1,0 +1,35 @@
+{
+  "level": "a1",
+  "order": 4,
+  "title": "In, On, Under",
+  "skill_type": ["Reading", "Vocabulary"],
+  "description": "Preposiciones de lugar: in, on, under.",
+  "duration_minutes": 10,
+  "author": "Josecro",
+  "content": [
+    { "type": "heading", "text": "In, On, Under", "level": 2 },
+    {
+      "type": "gallery",
+      "images": [
+        { "img": "pelota dentro de la caja.png", "caption": "The ball is in the box." },
+        { "img": "pelota sobre la caja.png", "caption": "The ball is on the box." },
+        { "img": "pelota debajo de la mesa.png", "caption": "The ball is under the table." }
+      ]
+    },
+    {
+      "type": "table",
+      "hasHeader": true,
+      "rows": [
+        ["English", "En español", "Example"],
+        ["in", "en / dentro de", "The ball is in the box."],
+        ["on", "sobre / encima de", "The ball is on the box."],
+        ["under", "debajo de", "The ball is under the table."]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "info",
+      "text": "Usa \"in\" para algo dentro, \"on\" para algo apoyado encima y \"under\" para algo debajo."
+    }
+  ]
+}
