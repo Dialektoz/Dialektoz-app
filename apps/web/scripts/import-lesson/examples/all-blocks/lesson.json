@@ -1,0 +1,87 @@
+{
+  "level": "a1",
+  "order": 99,
+  "title": "PRUEBA — todos los bloques",
+  "skill_type": ["Reading", "Grammar", "Vocabulary"],
+  "description": "Lección de prueba para verificar el importador. Bórrala cuando termines.",
+  "duration_minutes": 15,
+  "author": "Equipo Dialektoz",
+  "content": [
+    { "type": "heading", "text": "1. Texto y formato", "level": 2 },
+    { "type": "text", "markdown": "Esto es un párrafo con **negrita**, *cursiva* y un [enlace](https://www.dialektoz.com).\n\n- Primer punto\n- Segundo punto\n\n1. Paso uno\n2. Paso dos" },
+    { "type": "callout", "variant": "tip", "text": "Un callout de tipo tip." },
+    { "type": "quote", "text": "Learning never exhausts the mind.", "author": "Leonardo da Vinci" },
+    { "type": "divider" },
+
+    { "type": "heading", "text": "2. Imágenes", "level": 2 },
+    { "type": "image", "img": "demo-1.png", "alt": "Imagen de prueba", "caption": "Una imagen con pie de foto." },
+    { "type": "gallery", "images": [
+      { "img": "demo-1.png", "caption": "Foto 1" },
+      { "img": "demo-2.png", "caption": "Foto 2" }
+    ] },
+
+    { "type": "heading", "text": "3. Estructura", "level": 2 },
+    { "type": "table", "hasHeader": true, "rows": [["English", "Español"], ["cat", "gato"], ["dog", "perro"]] },
+    { "type": "accordion", "items": [
+      { "title": "¿Qué es esto?", "body": "Un acordeón con texto plano." },
+      { "title": "Otra sección", "body": "Más texto." }
+    ] },
+    { "type": "tabs", "tabs": [
+      { "label": "Tab 1", "body": "Contenido de la primera pestaña." },
+      { "label": "Tab 2", "body": "Contenido de la segunda pestaña." }
+    ] },
+    { "type": "timeline", "events": [
+      { "date": "1990", "title": "Evento uno", "description": "Descripción del evento." },
+      { "date": "2000", "title": "Evento dos", "description": "" }
+    ] },
+    { "type": "columns", "columns": [
+      [ { "type": "text", "paragraphs": ["Columna izquierda."] } ],
+      [ { "type": "callout", "variant": "info", "text": "Columna derecha." } ]
+    ] },
+    { "type": "container", "title": "Un contenedor", "variant": "card", "children": [
+      { "type": "text", "paragraphs": ["Texto dentro de un contenedor."] }
+    ] },
+    { "type": "code", "language": "text", "code": "I am, you are, he is" },
+    { "type": "button", "label": "Ir a Dialektoz", "url": "https://www.dialektoz.com", "align": "left", "variant": "primary" },
+
+    { "type": "heading", "text": "4. Video e incrustación", "level": 2 },
+    { "type": "video", "url": "https://www.youtube.com/watch?v=aqz-KE-bpKQ", "caption": "Un video de YouTube." },
+    { "type": "embed", "url": "https://www.youtube.com/embed/aqz-KE-bpKQ", "height": 360 },
+
+    { "type": "heading", "text": "5. Actividades (práctica libre)", "level": 2 },
+    { "type": "quiz", "question": "What colour is the sky?", "options": ["Blue", "Green", "Red"], "correctIndex": 0, "feedback": "The sky is blue." },
+    { "type": "multi-choice", "question": "Select the fruits.", "options": ["Apple", "Car", "Banana"], "correctIndices": [0, 2] },
+    { "type": "true-false", "statement": "A cat is a bird.", "answer": false },
+    { "type": "fill-blank", "text": "She {{is}} a teacher and they {{are}} students." },
+    { "type": "short-answer", "question": "Translate: gato", "answers": ["cat"], "caseSensitive": false },
+    { "type": "ordering", "prompt": "Order the words to make a sentence.", "items": ["I", "like", "pizza"] },
+    { "type": "matching", "prompt": "Match the words.", "pairs": [{ "left": "cat", "right": "gato" }, { "left": "dog", "right": "perro" }] },
+    { "type": "classification", "prompt": "Classify the words.", "categories": [
+      { "name": "Animals", "items": ["cat", "dog"] },
+      { "name": "Fruits", "items": ["apple", "banana"] }
+    ] },
+    { "type": "swipe", "prompt": "Swipe each word.", "categoryLeft": "Animal", "categoryRight": "Fruit", "items": [
+      { "label": "cat", "category": 0 }, { "label": "apple", "category": 1 }
+    ] },
+    { "type": "essay", "prompt": "Write about your day.", "minWords": 20, "placeholder": "Escribe tu respuesta…" },
+    { "type": "flashcards", "cards": [
+      { "front": "cat", "back": "gato" },
+      { "front_img": "demo-1.png", "front_alt": "Imagen de prueba", "back": "imagen" }
+    ] },
+    { "type": "image-hotspot", "img": "demo-1.png", "prompt": "Explora la imagen.", "spots": [
+      { "x": 25, "y": 30, "label": "Zona uno" }, { "x": 70, "y": 60, "label": "Zona dos" }
+    ] },
+    { "type": "image-labeling", "img": "demo-1.png", "prompt": "Pon la etiqueta correcta.", "points": [
+      { "x": 30, "y": 40, "label": "Left" }, { "x": 75, "y": 55, "label": "Right" }
+    ] }
+  ],
+  "quiz": [
+    { "type": "heading", "text": "Evaluación", "level": 2 },
+    { "type": "text", "paragraphs": ["Estas preguntas puntúan y cuentan para el examen."] },
+    { "type": "quiz", "question": "Which one is a verb?", "options": ["run", "table", "blue"], "correctIndex": 0 },
+    { "type": "multi-choice", "question": "Select the pronouns.", "options": ["I", "cat", "you"], "correctIndices": [0, 2] },
+    { "type": "true-false", "statement": "\"He\" is a pronoun.", "answer": true },
+    { "type": "fill-blank", "text": "I {{am}} happy." },
+    { "type": "short-answer", "question": "Plural of \"child\"?", "answers": ["children"], "caseSensitive": false }
+  ]
+}

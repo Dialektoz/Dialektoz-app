@@ -15,6 +15,24 @@ const CONTENT_TYPES: Record<string, string> = {
   jpeg: 'image/jpeg',
   webp: 'image/webp',
   gif: 'image/gif',
+  mp3: 'audio/mpeg',
+  wav: 'audio/wav',
+  m4a: 'audio/mp4',
+  ogg: 'audio/ogg',
+  mp4: 'video/mp4',
+  webm: 'video/webm',
+  mov: 'video/quicktime',
+  m4v: 'video/x-m4v',
+  pdf: 'application/pdf',
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xls: 'application/vnd.ms-excel',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  ppt: 'application/vnd.ms-powerpoint',
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  txt: 'text/plain',
+  csv: 'text/csv',
+  zip: 'application/zip',
 };
 
 export function contentTypeFor(file: string): string {
@@ -27,7 +45,7 @@ export function contentTypeFor(file: string): string {
  * re-importing a lesson never duplicates files nor changes their URLs.
  * (src/lib/r2.ts uses a random UUID per upload, which can't be idempotent.)
  */
-export function imageKey(file: string, bytes: Uint8Array): string {
+export function mediaKey(file: string, bytes: Uint8Array): string {
   const hash = createHash('sha256').update(bytes).digest('hex').slice(0, 16);
   const safe = file
     .normalize('NFD')
@@ -37,7 +55,7 @@ export function imageKey(file: string, bytes: Uint8Array): string {
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(-80);
-  return `lessons/${hash}-${safe || 'image'}`;
+  return `lessons/${hash}-${safe || 'file'}`;
 }
 
 export function publicUrlFor(publicBase: string, key: string): string {

@@ -142,24 +142,34 @@ Cada lección guarda su autor en `lessons.author_name` (texto que ven los estudi
 ## 9. Importar lecciones desde JSON (opcional)
 
 Hay dos vías, ambas extras: el editor de bloques sigue siendo la vía principal y ninguna cambia
-esquema, RLS ni tipos de bloque. Las dos comparten el validador `src/lib/lessonImport.ts`.
+esquema, RLS ni tipos de bloque. Las dos comparten el validador `src/lib/lessonImport.ts`, que cubre
+**los 32 tipos de bloque**, las preguntas de Evaluación (`quiz`) y archivos de imagen, audio, video y
+documentos.
 
+*   **Flujo pensado:** planear y corregir la lección en un chat al que se le pega
+    `apps/web/scripts/import-lesson/PROMPT.md`; el chat entrega el JSON y la lista de archivos; se
+    importa y solo se verifica en la página.
 *   **En el editor:** botón "Importar desde JSON" fijo en el pie del menú "+" de la pestaña
-    Contenido (`AddBlockMenu` → `ImportLessonDialog`). Pegas un `lesson.json` (o una lista de
-    bloques) y eliges las imágenes; se validan, se suben a R2 con `useR2Upload` y los bloques se
-    **insertan** en la lección abierta; los campos vacíos (título, descripción, skills, duración,
-    autor) se completan, nunca se pisan. Corre con la sesión del usuario (solo superadmin/teacher
-    llegan al editor) y el autoguardado normal lo persiste. No aparece en Evaluación ni dentro de
-    columnas/contenedores.
+    Contenido (`AddBlockMenu` → `ImportLessonDialog`). Se pega la respuesta del chat (tolera vallas
+    ```json y texto alrededor), se eligen o arrastran los archivos, y el diálogo valida en vivo, ofrece
+    "Copiar errores para el chat", sube los archivos con `useR2Upload`, **inserta** los bloques en la
+    lección abierta, **agrega** el `quiz` a la pestaña Evaluación y completa los campos vacíos (título,
+    descripción, skills, duración, autor), nunca los pisa. Corre con la sesión del usuario (solo
+    superadmin/teacher llegan al editor); el autoguardado normal lo persiste. No aparece en Evaluación
+    ni dentro de columnas/contenedores.
 *   **Comando local** `apps/web/scripts/import-lesson/` (`npm run import:lesson -- <carpeta>
-    [--apply]`; simulación por defecto): crea o actualiza una lección completa por (nivel, orden).
-    Usa el service role (se salta RLS) y las llaves de R2 desde `apps/web/.env.local`, que no se
-    commitea.
+    [--apply]`; simulación por defecto): crea o actualiza una lección completa por (nivel, orden), con
+    ids de bloque estables al reimportar. Usa el service role (se salta RLS) y las llaves de R2 desde
+    `apps/web/.env.local`, que no se commitea.
+*   **Seguridad:** los renderers no sanitizan URLs. El importador solo acepta `https://`, y para
+    `<iframe>` (embed y video no directo) solo los hosts de `IFRAME_HOSTS`; los enlaces de texto
+    Tiptap deben ser http(s)/mailto/relativos.
+*   **Puntaje:** solo puntúa lo que va en `quiz` (Evaluación, tipos de `QUIZ_EDITOR_TYPES`); las
+    actividades de `content` son práctica libre.
 
-Los validadores de bloques **replican a mano** las formas de `createDefault`; si se cambia el
-formato de un bloque soportado (heading, text, callout, quote, image, gallery, table, divider),
-hay que actualizar `src/lib/lessonImport.ts`. El módulo no tiene imports a propósito (corre en el
-navegador y en Node): quien lo llama le pasa la lista de skills.
+Los validadores **replican a mano** las formas de `createDefault` de cada bloque; si cambia el formato
+de un bloque, hay que actualizar `src/lib/lessonImport.ts` y `PROMPT.md`. El módulo no tiene imports a
+propósito (corre en el navegador y en Node): quien lo llama le pasa la lista de skills.
 
 ## 10. Development Language Guidelines
 

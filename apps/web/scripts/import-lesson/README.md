@@ -49,54 +49,69 @@ ignorada por git.
 
 ## Formato de `lesson.json`
 
-Ejemplo completo en [`examples/in-on-under/lesson.json`](examples/in-on-under/lesson.json)
-(sin imágenes: pon tus PNG/JPG junto al JSON con los mismos nombres).
+> **¿Quién escribe el JSON?** El chat. Pega [`PROMPT.md`](PROMPT.md) al inicio de la conversación donde
+> creas el contenido y el chat te entrega el JSON y la lista de archivos a crear. Tú solo importas y
+> verificas en la página.
+
+Ejemplos: [`examples/all-blocks/lesson.json`](examples/all-blocks/lesson.json) (los 32 tipos de bloque menos
+audio y documento; ideal para probar: usa `demo-1.png` y `demo-2.png`, cualquier imagen renombrada) y
+[`examples/in-on-under/lesson.json`](examples/in-on-under/lesson.json) (lección corta real).
 
 | Campo | Obligatorio | Notas |
 |---|---|---|
-| `level` | sí | Código del nivel (`levels.code`), sin distinguir mayúsculas. |
-| `order` | sí | Entero ≥ 1. Junto con `level` identifica la lección: reimportar **actualiza** en vez de duplicar. |
-| `title` | sí | No vacío. |
+| `level` | sí (comando) | Código del nivel (`levels.code`), sin distinguir mayúsculas. En el editor se ignora. |
+| `order` | sí (comando) | Entero ≥ 1. Con `level` identifica la lección: reimportar **actualiza** en vez de duplicar. |
+| `title` | sí (comando) | No vacío. |
 | `skill_type` | no | Lista con `Listening, Reading, Writing, Speaking, Grammar, Vocabulary`. |
 | `description`, `duration_minutes` | no | Texto / entero ≥ 0. |
 | `author` | no | Nombre que verán los estudiantes (requiere la migración `20261108180000_lesson_author.sql`). |
-| `content` | sí | Lista de bloques, escritos "planos": `{ "type": "...", ...campos }`. |
+| `content` | uno de los dos | Bloques del Contenido, escritos "planos": `{ "type": "...", ...campos }`. |
+| `quiz` | uno de los dos | Preguntas de **Evaluación** (las que puntúan y cuentan para el examen). Solo `heading, text, quiz, multi-choice, true-false, fill-blank, short-answer`. |
 
-Las imágenes se escriben con `"img": "nombre del archivo.png"` (sin carpetas); el importador las
-sube a R2 y pone la URL pública.
+Los archivos se escriben solo con su nombre (sin carpetas) y se reemplazan por la URL pública:
+`"img"` para imágenes y `"file"` para audio, video y documentos (o `"url"` https externa).
 
-### Bloques soportados
+### Bloques soportados (los 32 del editor)
 
-| `type` | Campos |
+| Grupo | `type` y campos |
 |---|---|
-| `heading` | `text`, `level` (1–3, por defecto 2) |
-| `text` | `paragraphs`: lista de textos, **o** `doc`: JSON de Tiptap |
-| `callout` | `text`, `variant`: `info` \| `warning` \| `success` \| `danger` \| `tip` (por defecto `info`) |
-| `quote` | `text`, `author` |
-| `image` | `img`, `alt`, `caption` |
-| `gallery` | `images`: lista de `{ "img", "caption" }` |
-| `table` | `rows`: lista de filas (mismo número de columnas), `hasHeader` (por defecto `true`) |
-| `divider` | — |
+| Texto | `heading` (`text`, `level` 1–3) · `text` (**uno de**: `paragraphs` lista de textos, `markdown` con **negrita**, *cursiva*, listas y enlaces, o `doc` Tiptap) · `callout` (`text`, `variant` info/warning/success/danger/tip) · `quote` (`text`, `author`) |
+| Imágenes | `image` (`img`, `alt`, `caption`) · `gallery` (`images`: `{img, caption}`) |
+| Media | `audio` (`file`|`url`, `title`) · `video` (`file`|`url`, `caption`) · `file` (`file`|`url`, `name`, `showPreview`) · `embed` (`url`, `height` 100–1200) |
+| Estructura | `table` (`rows`, `hasHeader`) · `divider` · `accordion` (`items`: `{title, body}`) · `tabs` (`tabs`: `{label, body}`) · `timeline` (`events`: `{date, title, description}`) · `columns` (`columns`: 2–4 listas de bloques) · `container` (`title`, `variant`, `children`) · `code` (`code`, `language`) · `button` (`label`, `url`, `align`, `variant`) |
+| Actividades | `quiz` (`question`, `options`, `correctIndex`, `feedback`) · `multi-choice` (`correctIndices`) · `true-false` (`statement`, `answer`) · `fill-blank` (`text` con `{{respuesta}}`) · `short-answer` (`answers`, `caseSensitive`) · `ordering` (`items` en el orden correcto) · `matching` (`pairs`: `{left, right}`) · `classification` (`categories`: `{name, items}`) · `swipe` (`categoryLeft`, `categoryRight`, `items`: `{label, category 0|1}`) · `essay` (`minWords`, `placeholder`) · `flashcards` (`cards`: `{front|front_img, front_alt, back}`) · `image-hotspot` (`img`, `spots`: `{x, y, label}`) · `image-labeling` (`img`, `points`: `{x, y, label}`) |
 
-`text` en `heading`/`callout`/`quote` puede ser un texto o `{ "t": "texto", "c": "#RRGGBB" }` (con color).
-Cualquier otro tipo (actividades, quiz, etc.), un campo desconocido o un valor inválido se
-**rechaza con un error claro**: nunca se descarta en silencio. Actividades y quiz no están en esta
-versión; se crean desde el editor.
+Los textos de `heading`/`callout`/`quote` y de las actividades pueden ser un texto o
+`{ "t": "texto", "c": "#RRGGBB" }` (con color). `x` e `y` son porcentajes (0–100) desde la esquina superior
+izquierda de la imagen.
+
+**Reglas que el importador impone** (un error las lista todas, con la ruta exacta, y no escribe nada):
+cada actividad se valida por su tipo (respuesta correcta dentro de las opciones, huecos `{{ }}` con
+respuesta, categorías 0/1, etiquetas únicas…); campos desconocidos y tipos no soportados se **rechazan**,
+nunca se descartan en silencio; `quiz` solo admite los 7 tipos de arriba. Archivos: imágenes png/jpg/jpeg/webp/gif
+(≤ 10 MB), audio mp3/wav/m4a/ogg (≤ 50 MB), video mp4/webm/mov/m4v (≤ 200 MB), documentos
+pdf/doc(x)/xls(x)/ppt(x)/txt/csv/zip (≤ 50 MB). Enlaces: solo `https://`; para `embed` y videos que no son un archivo
+directo, solo sitios de la lista de `IFRAME_HOSTS` en `src/lib/lessonImport.ts` (YouTube, Vimeo, Genially, Canva,
+Google Docs/Drive, Wordwall, Quizlet, Padlet, H5P, Loom); otro sitio se añade a mano en el editor (los renderers no
+sanitizan URLs ni usan `sandbox`).
+
+**Puntaje:** solo cuenta lo que va en `quiz` (Evaluación). Las actividades de `content` son práctica libre.
 
 ## Qué hace (y qué garantiza)
 
-1. **Valida todo antes de tocar nada** (campos, bloques, que las imágenes existan y pesen ≤ 10 MB).
+1. **Valida todo antes de tocar nada** (campos, bloques, que los archivos existan y no excedan su tope).
    Si hay un solo error, no escribe nada y los lista todos.
-2. **Imágenes:** la clave en R2 depende del contenido del archivo, así que reimportar no duplica
+2. **Archivos:** la clave en R2 depende del contenido del archivo, así que reimportar no duplica
    archivos ni cambia URLs; si ya existe, no se vuelve a subir.
 3. **Idempotente por (nivel, `order`):** si no existe → crea la lección (borrador); si existe →
    la actualiza conservando su `id`, el progreso de los estudiantes y si está publicada; si hay
    más de una con ese orden → error (ambiguo).
 4. **Ids de bloque:** en una actualización se reutiliza el id del bloque que ya estaba en esa
-   posición y tipo; los nuevos usan `crypto.randomUUID()`.
-5. **Actualizar reemplaza el contenido completo.** Lo que se haya editado a mano en el editor
+   posición (también dentro de columnas y contenedores) y tipo; los nuevos usan `crypto.randomUUID()`.
+5. **`quiz`:** solo se toca si el JSON trae la clave `quiz` (en ese caso reemplaza la Evaluación completa).
+6. **Actualizar reemplaza el contenido completo.** Lo que se haya editado a mano en el editor
    desde la última importación se sobrescribe; la simulación muestra el diff antes de aplicar.
-6. El orden lo asigna un trigger al insertar (siguiente libre); el script lo ajusta después al
+7. El orden lo asigna un trigger al insertar (siguiente libre); el script lo ajusta después al
    valor pedido. Si deja un hueco en la numeración, te avisa.
 
 ## Primera vez

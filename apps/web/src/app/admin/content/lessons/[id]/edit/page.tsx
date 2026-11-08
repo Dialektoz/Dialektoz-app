@@ -258,18 +258,22 @@ export default function LessonEditorPage() {
 
   // Insert imported blocks at `importAt` and fill in EMPTY lesson fields (never overwrites).
   // Returns the names of the fields that were filled, for the dialog summary.
-  const applyImport = ({ blocks: incoming, fields }: ImportResult): string[] => {
+  const applyImport = ({ content: incoming, quiz: incomingQuiz, fields }: ImportResult): string[] => {
     const at = importAt ?? blocks.length;
     const isEmptyText = (v: unknown) => !(typeof v === 'string' ? v : (v as { t?: string } | null)?.t ?? '').trim();
-    setBlocks((prev) => {
-      // A fresh lesson only has the empty starter heading: replace it instead of keeping it.
-      if (prev.length === 1 && prev[0].type === 'heading' && isEmptyText((prev[0].data as { text?: unknown })?.text)) {
-        return incoming;
-      }
-      const next = [...prev];
-      next.splice(Math.min(at, next.length), 0, ...incoming);
-      return next;
-    });
+    if (incoming.length > 0) {
+      setBlocks((prev) => {
+        // A fresh lesson only has the empty starter heading: replace it instead of keeping it.
+        if (prev.length === 1 && prev[0].type === 'heading' && isEmptyText((prev[0].data as { text?: unknown })?.text)) {
+          return incoming;
+        }
+        const next = [...prev];
+        next.splice(Math.min(at, next.length), 0, ...incoming);
+        return next;
+      });
+    }
+    // Graded questions go to the Evaluación tab (appended, never replacing what's there).
+    if (incomingQuiz.length > 0) setQuizBlocks((prev) => [...prev, ...incomingQuiz]);
     setBuilderKey((k) => k + 1);
 
     const filled: string[] = [];
@@ -575,7 +579,7 @@ export default function LessonEditorPage() {
                   />
                 ) : (
                   <LessonBuilder
-                    key="quiz"
+                    key={`quiz-${builderKey}`}
                     initialBlocks={quizBlocks}
                     onChange={setQuizBlocks}
                     allowedTypes={QUIZ_EDITOR_TYPES}
