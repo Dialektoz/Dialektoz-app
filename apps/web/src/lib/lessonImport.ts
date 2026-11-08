@@ -1,7 +1,8 @@
-import { SKILLS } from '../../src/lib/skills.ts';
-
 /**
  * Validation + transformation of lesson.json into what the lesson editor saves.
+ * Shared by the editor's "Importar desde JSON" dialog and the local CLI
+ * (scripts/import-lesson). Pure and import-free on purpose, so it runs both in
+ * the browser bundle and under plain Node; the caller injects the skills list.
  *
  * The editor's block registry can't run outside Next (it pulls in React and the
  * `@/` alias), so the block shapes are mirrored here, read from each block's
@@ -21,10 +22,11 @@ export interface BlockInstance {
   data: unknown;
 }
 
+/** In 'cli' mode level, order and title are always present; in 'editor' mode they may be null. */
 export interface LessonFields {
-  level: string;
-  order: number;
-  title: string;
+  level: string | null;
+  order: number | null;
+  title: string | null;
   skill_type: string | null;
   description: string | null;
   duration_minutes: number | null;
@@ -66,23 +68,56 @@ const TIPTAP_MARKS = new Set(['bold', 'italic', 'strike', 'code', 'link', 'under
 
 // ── lesson-level fields ──────────────────────────────────────────────────────
 
-export function validateLesson(raw: unknown): { fields?: LessonFields; content?: unknown[]; errors: string[] } {
+export interface ValidateOptions {
+  /** Allowed skill names (src/lib/skills.ts SKILLS), injected to keep this module import-free. */
+  skills: readonly string[];
+  /**
+   * 'cli': level, order and title are required (the lesson is created/updated by them).
+   * 'editor': blocks are inserted into the lesson being edited, so those are optional and
+   * ignored, and a bare array of blocks is accepted too.
+   */
+  mode: 'cli' | 'editor';
+}
+
+export function validateLesson(
+  raw: unknown,
+  opts: ValidateOptions
+): { fields?: LessonFields; content?: unknown[]; errors: string[] } {
+  const { skills: SKILLS, mode } = opts;
   const errors: string[] = [];
-  if (!isRec(raw)) return { errors: ['lesson.json debe ser un objeto JSON.'] };
+
+  if (Array.isArray(raw) && mode === 'editor') {
+    if (raw.length === 0) return { errors: ['La lista de bloques está vacía.'] };
+    return {
+      errors,
+      content: raw,
+      fields: { level: null, order: null, title: null, skill_type: null, description: null, duration_minutes: null, author: null },
+    };
+  }
+  if (!isRec(raw)) {
+    return { errors: [mode === 'editor' ? 'El JSON debe ser un lesson.json (objeto) o una lista de bloques.' : 'lesson.json debe ser un objeto JSON.'] };
+  }
 
   const known = ['level', 'order', 'title', 'skill_type', 'description', 'duration_minutes', 'author', 'content'];
   for (const key of Object.keys(raw)) {
     if (!known.includes(key)) errors.push(`Campo desconocido en lesson.json: "${key}".`);
   }
 
+  const required = mode === 'cli';
+
   const level = raw.level;
-  if (typeof level !== 'string' || !level.trim()) errors.push('"level" es obligatorio (código del nivel, p. ej. "a1").');
+  const hasLevel = typeof level === 'string' && level.trim() !== '';
+  if (required ? !hasLevel : level !== undefined && !hasLevel) {
+    errors.push('"level" es obligatorio (código del nivel, p. ej. "a1").');
+  }
 
   const order = raw.order;
-  if (typeof order !== 'number' || !Number.isInteger(order) || order < 1) errors.push('"order" debe ser un entero ≥ 1.');
+  const hasOrder = typeof order === 'number' && Number.isInteger(order) && order >= 1;
+  if (required ? !hasOrder : order !== undefined && !hasOrder) errors.push('"order" debe ser un entero ≥ 1.');
 
   const title = raw.title;
-  if (typeof title !== 'string' || !title.trim()) errors.push('"title" es obligatorio y no puede estar vacío.');
+  const hasTitle = typeof title === 'string' && title.trim() !== '';
+  if (required ? !hasTitle : title !== undefined && !hasTitle) errors.push('"title" es obligatorio y no puede estar vacío.');
 
   let skill: string | null = null;
   if (raw.skill_type !== undefined && raw.skill_type !== null) {
@@ -130,9 +165,9 @@ export function validateLesson(raw: unknown): { fields?: LessonFields; content?:
     errors,
     content: raw.content as unknown[],
     fields: {
-      level: (level as string).trim(),
-      order: order as number,
-      title: (title as string).trim(),
+      level: hasLevel ? (level as string).trim() : null,
+      order: hasOrder ? (order as number) : null,
+      title: hasTitle ? (title as string).trim() : null,
       skill_type: skill,
       description,
       duration_minutes: duration,
@@ -178,6 +213,15 @@ function checkTiptap(node: unknown, path: string, errors: string[]): void {
     node.marks.forEach((m, i) => {
       if (!isRec(m) || typeof m.type !== 'string' || !TIPTAP_MARKS.has(m.type)) {
         errors.push(`${path}.marks[${i}]: marca Tiptap no soportada.`);
+        return;
+      }
+      const attrs = isRec(m.attrs) ? m.attrs : {};
+      // Imported text is rendered to students: only allow safe link targets (no javascript: etc.).
+      if (m.type === 'link' && !(typeof attrs.href === 'string' && /^(https?:\/\/|mailto:|\/)/i.test(attrs.href))) {
+        errors.push(`${path}.marks[${i}]: un enlace necesita "href" que empiece por http://, https://, mailto: o /.`);
+      }
+      if (m.type === 'textStyle' && attrs.color !== undefined && !(typeof attrs.color === 'string' && HEX_COLOR.test(attrs.color))) {
+        errors.push(`${path}.marks[${i}]: "color" debe ser #RRGGBB.`);
       }
     });
   }

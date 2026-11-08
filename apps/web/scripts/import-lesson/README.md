@@ -4,6 +4,13 @@ Crea o actualiza **una lección** a partir de una carpeta con `lesson.json` + la
 Es un extra: el editor de `/admin/content` sigue siendo la vía principal y no depende de esto.
 Todo lo importado se abre y se edita en el editor igual que cualquier lección.
 
+> **Sin llaves ni terminal:** el mismo formato de `lesson.json` se puede importar **desde el
+> editor**: en la pestaña Contenido, abre el menú "+" y elige **Importar desde JSON** (pie del
+> menú). Pegas el JSON, eliges las imágenes y se **insertan los bloques en la lección abierta**
+> (y se completan los campos vacíos). Ahí `level` y `order` se ignoran. Este documento describe el
+> comando local, que además puede crear/actualizar una lección completa por (nivel, orden).
+> Ambos usan el validador `src/lib/lessonImport.ts`.
+
 ## Uso
 
 ```bash
