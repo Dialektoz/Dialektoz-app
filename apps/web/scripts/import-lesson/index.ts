@@ -17,15 +17,32 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
 import { loadEnvFile, readEnv } from './env.ts';
-import { R2_ENV, contentTypeFor, createR2, imageKey, publicUrlFor } from './r2.ts';
+import { R2_ENV, contentTypeFor, createR2, mediaKey, publicUrlFor } from './r2.ts';
 import { SKILLS } from '../../src/lib/skills.ts';
-import { buildBlocks, deepEqual, validateLesson } from '../../src/lib/lessonImport.ts';
-import type { BlockInstance } from '../../src/lib/lessonImport.ts';
+import { MEDIA_MAX_BYTES, buildBlocks, deepEqual, validateLesson } from '../../src/lib/lessonImport.ts';
+import type { BlockInstance, MediaKind } from '../../src/lib/lessonImport.ts';
 
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const MIGRATION = '20261108180000_lesson_author.sql';
 
 type Row = Record<string, unknown>;
+
+/** Existing block at `path` (e.g. content[2].columns[0][1] or quiz[1]) so re-imports keep ids stable. */
+function oldBlockAt(root: Row[], path: string): Row | undefined {
+  const idx = [...path.matchAll(/\[(\d+)\]/g)].map((m) => Number(m[1]));
+  const kinds = [...path.matchAll(/\.(columns|children)/g)].map((m) => m[1]);
+  let block: Row | undefined = root[idx[0]];
+  let k = 1;
+  for (const kind of kinds) {
+    const data = (block?.data ?? {}) as Row;
+    if (kind === 'columns') {
+      const col = (data.columns as Row[][] | undefined)?.[idx[k++]];
+      block = col?.[idx[k++]];
+    } else {
+      block = (data.children as Row[] | undefined)?.[idx[k++]];
+    }
+  }
+  return block;
+}
 
 function die(lines: string[]): never {
   console.error(lines.map((l) => `  ✗ ${l}`).join('\n'));
@@ -65,27 +82,24 @@ async function main() {
   const fields = { ...lesson.fields, level: levelCode, order: lessonOrder, title: lessonTitle };
 
   const errors: string[] = [];
-  const firstPass = new Set<string>();
-  buildBlocks(lesson.content, {
-    errors,
-    images: firstPass,
-    resolveImage: (f) => f,
-    newId: () => 'tmp',
-  });
+  const firstPass = new Map<string, MediaKind>();
+  const probe = { errors, files: firstPass, resolveFile: (f: string) => f, newId: () => 'tmp' };
+  buildBlocks(lesson.content, probe, 'content');
+  if (lesson.quiz) buildBlocks(lesson.quiz, probe, 'quiz');
 
-  const imageBytes = new Map<string, Uint8Array>();
-  for (const file of firstPass) {
+  const mediaBytes = new Map<string, Uint8Array>();
+  for (const [file, kind] of firstPass) {
     const path = join(folder, file);
     if (!existsSync(path) || !statSync(path).isFile()) {
-      errors.push(`Falta la imagen "${file}" en ${folder}.`);
+      errors.push(`Falta el archivo "${file}" en ${folder}.`);
       continue;
     }
     const size = statSync(path).size;
-    if (size === 0 || size > MAX_IMAGE_BYTES) {
-      errors.push(`La imagen "${file}" pesa ${size} bytes (debe estar entre 1 y ${MAX_IMAGE_BYTES}).`);
+    if (size === 0 || size > MEDIA_MAX_BYTES[kind]) {
+      errors.push(`El archivo "${file}" pesa ${size} bytes (para ${kind} debe estar entre 1 y ${MEDIA_MAX_BYTES[kind]}).`);
       continue;
     }
-    imageBytes.set(file, new Uint8Array(readFileSync(path)));
+    mediaBytes.set(file, new Uint8Array(readFileSync(path)));
   }
   if (errors.length) die(errors);
 
@@ -130,19 +144,22 @@ async function main() {
   // 4. Build the final blocks: R2 URLs from deterministic keys, ids reused from the existing lesson.
   const publicBase = r2Env.values.R2_PUBLIC_BASE_URL ?? 'https://<R2_PUBLIC_BASE_URL>';
   const keyByFile = new Map<string, string>();
-  for (const [file, bytes] of imageBytes) keyByFile.set(file, imageKey(file, bytes));
+  for (const [file, bytes] of mediaBytes) keyByFile.set(file, mediaKey(file, bytes));
 
   const oldBlocks = existing && Array.isArray(existing.content) ? (existing.content as Row[]) : [];
+  const oldQuiz = existing && Array.isArray(existing.quiz) ? (existing.quiz as Row[]) : [];
   const finalErrors: string[] = [];
-  const blocks: BlockInstance[] = buildBlocks(lesson.content, {
+  const finalCtx = {
     errors: finalErrors,
-    images: new Set<string>(),
-    resolveImage: (file) => publicUrlFor(publicBase, keyByFile.get(file) as string),
-    newId: (path, type) => {
-      const old = oldBlocks[Number(/\[(\d+)\]/.exec(path)?.[1])];
+    files: new Map<string, MediaKind>(),
+    resolveFile: (file: string) => publicUrlFor(publicBase, keyByFile.get(file) as string),
+    newId: (path: string, type: string) => {
+      const old = oldBlockAt(path.startsWith('quiz') ? oldQuiz : oldBlocks, path);
       return old && typeof old.id === 'string' && old.type === type ? old.id : randomUUID();
     },
-  });
+  };
+  const blocks: BlockInstance[] = buildBlocks(lesson.content, finalCtx, 'content');
+  const quizBlocks: BlockInstance[] | null = lesson.quiz ? buildBlocks(lesson.quiz, finalCtx, 'quiz') : null;
   if (finalErrors.length) die(finalErrors);
 
   const row: Row = {
@@ -152,6 +169,8 @@ async function main() {
     duration_minutes: fields.duration_minutes,
     content: blocks,
   };
+  // `quiz` (Evaluación) is only touched when lesson.json has a "quiz" key.
+  if (quizBlocks) row.quiz = quizBlocks;
   if (fields.author) row.author_name = fields.author;
 
   // 5. Report the plan (always printed, so --apply shows what it is about to do).
@@ -188,7 +207,11 @@ async function main() {
     console.log(`Bloques (${blocks.length}): ${blocks.map((b) => b.type).join(', ')}`);
   }
 
-  console.log(`Imágenes (${imageBytes.size}):`);
+  if (quizBlocks) {
+    const changedQuiz = !existing || !deepEqual(oldQuiz.map((b) => ({ type: b.type, data: b.data })), quizBlocks.map((b) => ({ type: b.type, data: b.data })));
+    console.log(`Evaluación (quiz): ${quizBlocks.length} bloques${existing ? (changedQuiz ? ' — REEMPLAZA los actuales' : ' — sin cambios') : ''}.`);
+  }
+  console.log(`Archivos (${mediaBytes.size}):`);
   for (const [file, key] of keyByFile) console.log(`  - ${file}  →  ${key}`);
 
   if (!apply) {
@@ -202,7 +225,7 @@ async function main() {
     if (await r2.exists(key)) {
       console.log(`  = ${file}: ya estaba en R2, no se vuelve a subir`);
     } else {
-      await r2.put(key, imageBytes.get(file) as Uint8Array, contentTypeFor(file));
+      await r2.put(key, mediaBytes.get(file) as Uint8Array, contentTypeFor(file));
       console.log(`  ↑ ${file}: subida`);
     }
   }
