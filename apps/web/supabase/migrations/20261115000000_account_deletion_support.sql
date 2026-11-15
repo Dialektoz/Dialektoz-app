@@ -9,44 +9,48 @@
 -- foreign keys are located by table/column instead of by an assumed name.
 -- Idempotent: safe to run more than once.
 
--- Drops every FK of public.<tbl>(<col>) [optionally only those pointing at <ref>].
-create or replace function pg_temp.drop_fk(tbl text, col text, ref regclass default null)
-returns void language plpgsql as $$
-declare c record;
+-- Certificates survive their owner (anonymized by the trigger below), so /verify keeps
+-- working for credentials already issued; the FK below sets user_id to null.
+alter table public.certificates alter column user_id drop not null;
+
+-- One self-contained block (no helper objects): for each FK, drop whatever constraint
+-- exists on that table/column and recreate it with the wanted ON DELETE action.
+--   profiles.id          -> auth.users  : CASCADE  (a profile goes away with its user)
+--   levels.created_by    -> profiles    : SET NULL (the creator can be deleted; creator_name stays as text)
+--   certificates.user_id -> auth.users  : SET NULL (kept, anonymized)
+do $$
+declare
+  spec record;
+  c record;
 begin
-  for c in
-    select con.conname
-    from pg_constraint con
-    join pg_class rel on rel.oid = con.conrelid
-    join pg_namespace ns on ns.oid = rel.relnamespace
-    join pg_attribute att on att.attrelid = con.conrelid and att.attnum = any (con.conkey)
-    where con.contype = 'f'
-      and ns.nspname = 'public'
-      and rel.relname = tbl
-      and att.attname = col
-      and (ref is null or con.confrelid = ref)
+  for spec in
+    select * from (values
+      ('profiles',     'id',         'auth.users'::regclass,     'profiles_id_fkey',
+         'foreign key (id) references auth.users(id) on delete cascade'),
+      ('levels',       'created_by', 'public.profiles'::regclass, 'levels_created_by_fkey',
+         'foreign key (created_by) references public.profiles(id) on delete set null'),
+      ('certificates', 'user_id',    'auth.users'::regclass,     'certificates_user_id_fkey',
+         'foreign key (user_id) references auth.users(id) on delete set null')
+    ) as v(tbl, col, ref, newname, def)
   loop
-    execute format('alter table public.%I drop constraint %I', tbl, c.conname);
+    for c in
+      select con.conname
+      from pg_constraint con
+      join pg_class rel on rel.oid = con.conrelid
+      join pg_namespace ns on ns.oid = rel.relnamespace
+      join pg_attribute att on att.attrelid = con.conrelid and att.attnum = any (con.conkey)
+      where con.contype = 'f'
+        and ns.nspname = 'public'
+        and rel.relname = spec.tbl
+        and att.attname = spec.col
+        and con.confrelid = spec.ref
+    loop
+      execute format('alter table public.%I drop constraint %I', spec.tbl, c.conname);
+    end loop;
+
+    execute format('alter table public.%I add constraint %I %s', spec.tbl, spec.newname, spec.def);
   end loop;
 end $$;
-
--- 1) A profile goes away with its auth user.
-select pg_temp.drop_fk('profiles', 'id', 'auth.users'::regclass);
-alter table public.profiles
-  add constraint profiles_id_fkey foreign key (id) references auth.users(id) on delete cascade;
-
--- 2) Deleting the creator must not be blocked by the levels they created
---    (creator_name stays as plain text, like lessons.author_name).
-select pg_temp.drop_fk('levels', 'created_by', 'public.profiles'::regclass);
-alter table public.levels
-  add constraint levels_created_by_fkey foreign key (created_by) references public.profiles(id) on delete set null;
-
--- 3) Certificates survive their owner (anonymized by the trigger below), so
---    /verify keeps working for credentials already issued.
-alter table public.certificates alter column user_id drop not null;
-select pg_temp.drop_fk('certificates', 'user_id', 'auth.users'::regclass);
-alter table public.certificates
-  add constraint certificates_user_id_fkey foreign key (user_id) references auth.users(id) on delete set null;
 
 -- 4) Anonymize the holder name BEFORE the user row is deleted. BEFORE triggers
 --    run before the referential actions (cascade / set null), in the same
