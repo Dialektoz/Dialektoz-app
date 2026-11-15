@@ -70,6 +70,9 @@ export default function SettingsForm({ initial }: { initial: ProfileValues }) {
       .update({
         first_name: form.first_name.trim() || null,
         last_name: form.last_name.trim() || null,
+        // Keep full_name consistent with the name fields: the leaderboard fallback and the
+        // exam holder name read it, and it used to go stale after any name change.
+        full_name: [form.first_name, form.last_name].map((p) => p.trim()).filter(Boolean).join(' ') || null,
         phone: form.phone.trim() || null,
         display_name: form.display_name.trim() || null,
         avatar_url: form.avatar_url,
