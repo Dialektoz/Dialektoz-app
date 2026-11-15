@@ -6,6 +6,7 @@ import MobileHeader from '@/components/layout/MobileHeader';
 import MobileBottomNav from '@/components/layout/MobileBottomNav';
 import { createClient } from '@/utils/supabase/server';
 import SettingsForm from '@/components/settings/SettingsForm';
+import PasswordSection from '@/components/settings/PasswordSection';
 import type { ProfileValues } from '@/components/settings/SettingsForm';
 
 export const metadata = {
@@ -23,6 +24,9 @@ export default async function SettingsPage() {
     .select('first_name, last_name, phone, display_name, avatar_url, timezone, leaderboard_opt_in, email, role')
     .eq('id', user.id)
     .single();
+
+  // Accounts created with Google/Facebook/Apple have no password identity.
+  const hasPassword = (user.identities ?? []).some((i) => i.provider === 'email');
 
   const initial: ProfileValues = {
     first_name: profile?.first_name ?? '',
@@ -52,6 +56,10 @@ export default async function SettingsPage() {
           </header>
 
           <SettingsForm initial={initial} />
+
+          <div className="space-y-5 pb-8">
+            <PasswordSection email={user.email ?? profile?.email ?? null} hasPassword={hasPassword} />
+          </div>
         </div>
       </main>
       <MobileBottomNav />
