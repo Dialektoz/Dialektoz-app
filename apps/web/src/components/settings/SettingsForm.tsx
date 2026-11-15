@@ -1,12 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { UploadDropzone } from '@/components/editor/UploadDropzone';
 import { deleteUpload } from '@/lib/useR2Upload';
-import { Loader2, Check, AlertCircle, KeyRound, Trophy, Globe } from 'lucide-react';
+import { Loader2, Check, AlertCircle, Trophy, Globe } from 'lucide-react';
+import { Field, inputClass } from './ui';
 
 export interface ProfileValues {
   first_name: string;
@@ -70,6 +70,9 @@ export default function SettingsForm({ initial }: { initial: ProfileValues }) {
       .update({
         first_name: form.first_name.trim() || null,
         last_name: form.last_name.trim() || null,
+        // Keep full_name consistent with the name fields: the leaderboard fallback and the
+        // exam holder name read it, and it used to go stale after any name change.
+        full_name: [form.first_name, form.last_name].map((p) => p.trim()).filter(Boolean).join(' ') || null,
         phone: form.phone.trim() || null,
         display_name: form.display_name.trim() || null,
         avatar_url: form.avatar_url,
@@ -186,18 +189,6 @@ export default function SettingsForm({ initial }: { initial: ProfileValues }) {
         </Field>
       </section>
 
-      {/* Security */}
-      <section className="rounded-2xl border border-border bg-card p-5 md:p-6">
-        <h2 className="font-bold text-lg mb-1">Seguridad</h2>
-        <p className="text-sm text-foreground/50 mb-4">Tu correo y tu rol solo pueden cambiarlos los administradores.</p>
-        <Link
-          href="/change-password"
-          className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-semibold hover:bg-muted transition-colors"
-        >
-          <KeyRound className="size-4" /> Cambiar contraseña
-        </Link>
-      </section>
-
       {/* Save bar — sits at the end of the form, not pinned to the viewport */}
       <div className="flex flex-wrap items-center gap-3 pt-2 pb-4">
         <button
@@ -215,19 +206,6 @@ export default function SettingsForm({ initial }: { initial: ProfileValues }) {
           <span className="text-sm text-destructive font-semibold flex items-center gap-1.5"><AlertCircle className="size-4" /> {message}</span>
         )}
       </div>
-    </div>
-  );
-}
-
-const inputClass =
-  'w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors';
-
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">{label}</label>
-      {children}
-      {hint && <p className="text-xs text-foreground/40 mt-1">{hint}</p>}
     </div>
   );
 }

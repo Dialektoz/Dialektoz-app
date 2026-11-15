@@ -66,6 +66,41 @@ export async function deleteObject(key: string): Promise<boolean> {
   return res.ok || res.status === 404;
 }
 
+/**
+ * Delete every object under `prefix` (e.g. "avatars/<uid>/"). Used when a user deletes
+ * their account, so abandoned avatar uploads don't outlive it. Returns how many were removed.
+ */
+export async function deletePrefix(prefix: string): Promise<number> {
+  if (!isR2Configured() || !prefix.endsWith('/')) return 0;
+  const client = new AwsClient({
+    accessKeyId: R2_ACCESS_KEY_ID!,
+    secretAccessKey: R2_SECRET_ACCESS_KEY!,
+    service: 's3',
+    region: 'auto',
+  });
+  const base = `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${R2_BUCKET}`;
+  const decode = (v: string) => v.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'");
+
+  let removed = 0;
+  let token: string | null = null;
+  do {
+    const url = new URL(base);
+    url.searchParams.set('list-type', '2');
+    url.searchParams.set('prefix', prefix);
+    if (token) url.searchParams.set('continuation-token', token);
+    const res = await client.fetch(url.toString());
+    if (!res.ok) throw new Error(`R2 list ${prefix} responded ${res.status}`);
+    const xml = await res.text();
+
+    for (const m of xml.matchAll(/<Key>([^<]+)<\/Key>/g)) {
+      const key = decode(m[1]);
+      if (key.startsWith(prefix) && (await deleteObject(key))) removed++;
+    }
+    token = /<IsTruncated>true<\/IsTruncated>/.test(xml) ? (/<NextContinuationToken>([^<]+)<\/NextContinuationToken>/.exec(xml)?.[1] ?? null) : null;
+  } while (token);
+  return removed;
+}
+
 /** Generate a presigned PUT url the browser can upload to for `expiresIn` seconds. */
 export async function presignPut(key: string, expiresIn = 3600): Promise<string> {
   const client = new AwsClient({

@@ -142,6 +142,16 @@ export default function PrivacyPolicyPage() {
                 .
               </p>
               <p>
+                Además, desde <strong>Configuración → Eliminar cuenta</strong> cada usuario puede
+                eliminar su cuenta y sus datos por sí mismo, y descargar una copia de su información
+                desde <strong>Configuración → Descargar mis datos</strong>. La eliminación es{' '}
+                <strong>permanente e irreversible</strong>: no podemos restaurar la cuenta ni sus
+                datos. Se eliminan el perfil, el progreso, la racha y los intentos de examen; los
+                certificados ya emitidos se conservan sin el nombre del titular (“Titular eliminado”)
+                para que puedan seguir verificándose, y el nombre de quienes crearon contenido
+                educativo puede permanecer como crédito de autoría.
+              </p>
+              <p>
                 El titular o su representante legal podrán ejercer en cualquier momento los derechos
                 de:
               </p>

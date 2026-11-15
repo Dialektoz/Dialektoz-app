@@ -31,6 +31,11 @@ export async function GET(request: Request) {
     const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error && session) {
+      // Email change confirmed: back to settings (profiles.email is synced by a DB trigger).
+      if (type === 'email_change') {
+        return NextResponse.redirect(`${origin}/settings?email=updated`)
+      }
+
       // Password recovery flow: send the user to /change-password regardless of onboarding state.
       if (type === 'recovery') {
         return NextResponse.redirect(`${origin}/change-password?recovery=1`)
@@ -55,6 +60,12 @@ export async function GET(request: Request) {
 
     // Code exchange failed
     return NextResponse.redirect(`${origin}/login?error=auth_error`)
+  }
+
+  // With "secure email change" the first confirmation (old address) comes back without a code:
+  // it is not an error, the second link (new address) finishes the change.
+  if (type === 'email_change') {
+    return NextResponse.redirect(`${origin}/settings?email=pending`)
   }
 
   // No code and no query error → likely a hash error. Tell the user the link expired.

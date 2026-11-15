@@ -189,7 +189,37 @@ panel `/admin` usa el mismo sidebar (`admin/layout.tsx`); no hay un segundo men�
 *   `MobileBottomNav` es un wrapper de servidor (lee el rol de `getCurrentProfile`, cacheado), así
     que las páginas siguen importándolo sin props.
 
-## 11. Development Language Guidelines
+## 11. Cuenta del usuario (/settings)
+
+`/settings` permite cambiar nombre, correo y contraseña, cerrar sesión, descargar los propios datos y
+eliminar la cuenta.
+
+*   **Correo y contraseña** piden la contraseña actual (re-autenticación con `signInWithPassword`).
+    Al cambiar la contraseña se cierran las otras sesiones. Las cuentas que solo usan
+    Google/Facebook/Apple (sin identidad `email`) no pueden cambiar el correo (lo administra el
+    proveedor) y ven "Crear contraseña". El cambio de correo envía el enlace de confirmación de Supabase
+    (depende del correo y de su ajuste "secure email change", que viven solo en el panel);
+    `/auth/callback` maneja `type=email_change` y `profiles.email` se sincroniza con un trigger.
+*   **Descargar mis datos:** `GET /api/account/export`, con la sesión del usuario (RLS), sin service
+    role ni claves de examen.
+*   **Eliminar cuenta** (`app/settings/actions.ts`, `deleteMyAccount`): aviso permanente con casilla
+    obligatoria → escribir `ELIMINAR` + contraseña (o inicio de sesión reciente en cuentas OAuth). El
+    servidor re-valida todo, toma el id de la sesión, bloquea a los superadmin y llama a
+    `auth.admin.deleteUser`; la **base de datos** hace la limpieza (migración
+    `20261115000000_account_deletion_support.sql`): el perfil, el progreso, la actividad y los
+    intentos se borran en cascada; `levels.created_by` queda en nulo (el `creator_name` y el
+    `author_name` de lecciones se conservan como crédito); los certificados se conservan con
+    `holder_name = 'Titular eliminado'` y `user_id` nulo (un trigger BEFORE DELETE en `auth.users`).
+    Solo las fotos de R2 (`avatars/<uid>/`, `deletePrefix`) se borran desde el código.
+*   **Presentación:** Perfil siempre abierto; Correo, Contraseña y Eliminar cuenta son desplegables
+    (`Collapsible` en `components/settings/ui.tsx`, `<details>` nativo; Correo se abre solo con
+    `?email=` o un cambio pendiente). Descargar datos y Cerrar sesión van juntos en una tarjeta simple.
+*   La eliminación es **definitiva**: no hay periodo de gracia ni se atienden recuperaciones. La
+    política de privacidad lo describe.
+*   **Orden de despliegue:** aplicar la migración en producción **antes** de desplegar "Eliminar
+    cuenta"; sin ella, `deleteUser` falla (y no se borra nada).
+
+## 12. Development Language Guidelines
 
 *   **Code and Documentation:** All code (variables, functions, components), commits, comments,
     and internal documentation **MUST be written in English**.
