@@ -8,6 +8,7 @@ import { createClient } from '@/utils/supabase/server';
 import SettingsForm from '@/components/settings/SettingsForm';
 import PasswordSection from '@/components/settings/PasswordSection';
 import EmailSection from '@/components/settings/EmailSection';
+import DataExportSection from '@/components/settings/DataExportSection';
 import type { ProfileValues } from '@/components/settings/SettingsForm';
 
 export const metadata = {
@@ -79,6 +80,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               provider={provider}
             />
             <PasswordSection email={user.email ?? profile?.email ?? null} hasPassword={hasPassword} />
+            <DataExportSection />
           </div>
         </div>
       </main>
