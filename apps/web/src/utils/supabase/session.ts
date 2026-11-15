@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import { createClient } from './server';
+import { computeStreak } from '@/lib/learning';
 
 /**
  * Request-scoped, deduplicated session helpers.
@@ -49,4 +50,24 @@ export const getCurrentProfile = cache(async (): Promise<SessionProfile | null> 
     email: data?.email ?? user.email ?? null,
     avatarUrl: data?.avatar_url ?? null,
   };
+});
+
+/**
+ * Current daily streak (same computeStreak as the dashboard, /progress and /streak),
+ * cached per request. Only the latest ~1000 active days are read: enough for any
+ * realistic streak and it keeps the query small.
+ */
+export const getCurrentStreak = cache(async (): Promise<number> => {
+  const user = await getCurrentUser();
+  if (!user) return 0;
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('user_activity')
+    .select('activity_date')
+    .eq('user_id', user.id)
+    .order('activity_date', { ascending: false })
+    .limit(1000);
+
+  return computeStreak((data ?? []).map((r) => r.activity_date));
 });
