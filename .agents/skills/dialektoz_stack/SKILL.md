@@ -171,7 +171,25 @@ Los validadores **replican a mano** las formas de `createDefault` de cada bloque
 de un bloque, hay que actualizar `src/lib/lessonImport.ts` y `PROMPT.md`. El módulo no tiene imports a
 propósito (corre en el navegador y en Node): quien lo llama le pasa la lista de skills.
 
-## 10. Development Language Guidelines
+## 10. Navegación y roles
+
+Hay **un solo menú** para toda la app: `SidebarClient` (escritorio) y `MobileBottomNavClient`
+(celular), alimentados por `src/components/layout/navItems.ts`, que concentra qué ve cada rol. El
+panel `/admin` usa el mismo sidebar (`admin/layout.tsx`); no hay un segundo menú.
+
+*   Grupos: **Administración** (primero, solo para el personal) y **Aprender**. El estudiante no ve
+    rótulos de grupo.
+*   Matriz: superadmin ve todo; admin ve Resumen, Profesores, Usuarios y Configuración del sistema (no
+    Contenido); teacher ve solo Contenido; el resto no ve Administración. Es **solo presentación**:
+    el acceso lo imponen el middleware y RLS. Si cambias la matriz en el middleware, cámbiala también
+    en `navItems.ts`.
+*   "Configuración del sistema" (`/admin/settings`) todavía no tiene página: da el 404 a propósito.
+*   Móvil: en rutas de estudiante, las 5 pestañas + "Admin" para el personal; dentro de `/admin`,
+    las pestañas de administración del rol + "Plataforma".
+*   `MobileBottomNav` es un wrapper de servidor (lee el rol de `getCurrentProfile`, cacheado), así
+    que las páginas siguen importándolo sin props.
+
+## 11. Development Language Guidelines
 
 *   **Code and Documentation:** All code (variables, functions, components), commits, comments,
     and internal documentation **MUST be written in English**.

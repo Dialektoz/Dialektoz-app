@@ -7,11 +7,12 @@ import {
   getSidebarCollapsedServer,
   setSidebarCollapsed,
 } from "@/lib/sidebarStore";
-import { Home, Award, Settings, LogOut, Flame, BarChart2, ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react";
+import { Settings, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
+import { navGroupsFor, isActive } from "./navItems";
 
 export default function SidebarClient({ name, role }: { name: string; role: string }) {
   const supabase = createClient();
@@ -32,7 +33,9 @@ export default function SidebarClient({ name, role }: { name: string; role: stri
     : role === 'teacher' ? 'Profesor'
     : role === 'premium' || role === 'student_premium' ? 'Estudiante Premium'
     : 'Estudiante';
-  const isStaff = role === 'admin' || role === 'superadmin' || role === 'teacher';
+  // Administración (by role) first, then Aprender. Only labeled when there is more than one group.
+  const groups = navGroupsFor(role);
+  const showGroupLabels = groups.length > 1;
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -42,7 +45,8 @@ export default function SidebarClient({ name, role }: { name: string; role: stri
 
   return (
     <aside className={`bg-background hidden md:flex flex-col justify-between py-6 shrink-0 border-r border-border transition-all duration-300 ease-in-out ${isCollapsed ? 'w-20 px-2' : 'w-56 lg:w-64 px-3 lg:px-4'}`}>
-      <div>
+      {/* Only the nav list scrolls on short screens, so Configuración / Cerrar sesión stay reachable. */}
+      <div className="flex flex-col flex-1 min-h-0">
         <div className={`mb-12 flex items-center relative w-full ${isCollapsed ? 'justify-center px-0' : 'justify-between px-3'}`}>
           {!isCollapsed ? (
              <img src="/logo-vector.svg" alt="Dialektoz Logo" className="w-36 h-auto object-contain -ml-2" />
@@ -84,24 +88,38 @@ export default function SidebarClient({ name, role }: { name: string; role: stri
           )}
         </div>
 
-        <nav className="flex flex-col gap-1">
-          <NavItem href="/dashboard" icon={<Home size={18} />} label="Inicio" active={pathname === '/dashboard'} collapsed={isCollapsed} />
-          <NavItem href="/progress" icon={<BarChart2 size={18} />} label="Mi Progreso" active={pathname === '/progress'} collapsed={isCollapsed} />
-          <NavItem href="/streak" icon={<Flame size={18} />} label="Racha Diaria" active={pathname === '/streak'} collapsed={isCollapsed} />
-          <NavItem href="/leaderboard" icon={<Award size={18} />} label="Clasificación" active={pathname === '/leaderboard'} collapsed={isCollapsed} />
-          {isStaff && (
-            <NavItem
-              href={role === 'teacher' ? '/admin/content' : '/admin'}
-              icon={<ShieldCheck size={18} />}
-              label={role === 'teacher' ? 'Gestionar contenido' : 'Administración'}
-              active={pathname.startsWith('/admin')}
-              collapsed={isCollapsed}
-            />
-          )}
+        <nav className="flex flex-col flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+          {groups.map((group, gi) => (
+            <div key={group.id}>
+              {showGroupLabels &&
+                (isCollapsed ? (
+                  gi > 0 && <div className="my-3 mx-2 border-t border-border/50" />
+                ) : (
+                  <p className={`text-[10px] font-bold uppercase tracking-widest text-foreground/40 px-4 mb-1.5 ${gi > 0 ? 'mt-5' : ''}`}>
+                    {group.label}
+                  </p>
+                ))}
+              <div className="flex flex-col gap-1">
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <NavItem
+                      key={item.href}
+                      href={item.href}
+                      icon={<Icon size={18} />}
+                      label={item.label}
+                      active={isActive(pathname, item)}
+                      collapsed={isCollapsed}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
       </div>
 
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1 shrink-0 pt-2">
         <NavItem href="/settings" icon={<Settings size={18} />} label="Configuración" active={pathname === '/settings'} collapsed={isCollapsed} />
         <NavItem
           icon={<LogOut size={18} />}
