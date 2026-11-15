@@ -29,7 +29,7 @@ export default function NotFound() {
         </h2>
         
         <p className="text-foreground/60 text-lg max-w-md mx-auto mb-10 leading-relaxed font-medium">
-          Sección en construcción, Ferney no ha chambeado 🚧
+          Sección en construcción, Dev Team no ha chambeado 🚧
         </p>
 
         <Link 
