@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { Loader2, Check, AlertCircle } from 'lucide-react';
-import { Card, Field, inputClass } from './ui';
+import { Collapsible, Field, inputClass } from './ui';
 import PasswordStrength from './PasswordStrength';
 
 /**
@@ -64,14 +64,15 @@ export default function PasswordSection({ email, hasPassword }: { email: string 
   };
 
   return (
-    <Card
+    <Collapsible
       title={hasPassword ? 'Contraseña' : 'Crear contraseña'}
-      subtitle={
-        hasPassword
-          ? 'Para cambiarla necesitamos tu contraseña actual.'
-          : 'Entras con Google, Facebook o Apple. Puedes crear una contraseña para entrar también con tu correo.'
-      }
+      summary={hasPassword ? 'Cambia tu contraseña' : 'Para entrar también con tu correo'}
     >
+      <p className="text-sm text-foreground/50 mb-4">
+        {hasPassword
+          ? 'Para cambiarla necesitamos tu contraseña actual.'
+          : 'Entras con Google, Facebook o Apple. Puedes crear una contraseña para entrar también con tu correo.'}
+      </p>
       <form onSubmit={submit} className="space-y-4 max-w-md" autoComplete="off">
         {hasPassword && (
           <Field label="Contraseña actual">
@@ -102,6 +103,6 @@ export default function PasswordSection({ email, hasPassword }: { email: string 
           )}
         </div>
       </form>
-    </Card>
+    </Collapsible>
   );
 }

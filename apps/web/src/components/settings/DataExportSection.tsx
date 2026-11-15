@@ -1,12 +1,11 @@
 import { Download } from 'lucide-react';
-import { Card } from './ui';
 
 export default function DataExportSection() {
   return (
-    <Card
-      title="Tus datos"
-      subtitle="Descarga una copia de la información de tu cuenta: perfil, progreso, racha, intentos de examen y certificados."
-    >
+    <div>
+      <p className="text-sm text-foreground/50 mb-3">
+        Descarga una copia de la información de tu cuenta: perfil, progreso, racha, intentos de examen y certificados.
+      </p>
       <a
         href="/api/account/export"
         download
@@ -14,6 +13,6 @@ export default function DataExportSection() {
       >
         <Download className="size-4" /> Descargar mis datos
       </a>
-    </Card>
+    </div>
   );
 }

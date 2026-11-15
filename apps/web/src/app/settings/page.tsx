@@ -11,6 +11,7 @@ import EmailSection from '@/components/settings/EmailSection';
 import DataExportSection from '@/components/settings/DataExportSection';
 import SessionSection from '@/components/settings/SessionSection';
 import DeleteAccountSection from '@/components/settings/DeleteAccountSection';
+import { Card } from '@/components/settings/ui';
 import type { ProfileValues } from '@/components/settings/SettingsForm';
 
 export const metadata = {
@@ -80,10 +81,15 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               pendingEmail={user.new_email ?? null}
               hasPassword={hasPassword}
               provider={provider}
+              defaultOpen={emailFlag !== undefined || !!user.new_email}
             />
             <PasswordSection email={user.email ?? profile?.email ?? null} hasPassword={hasPassword} />
-            <SessionSection />
-            <DataExportSection />
+            <Card title="Tus datos y sesión">
+              <div className="space-y-5">
+                <DataExportSection />
+                <SessionSection />
+              </div>
+            </Card>
             <DeleteAccountSection hasPassword={hasPassword} isSuperadmin={profile?.role === 'superadmin'} />
           </div>
         </div>

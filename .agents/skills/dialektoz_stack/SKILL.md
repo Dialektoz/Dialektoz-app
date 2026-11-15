@@ -211,6 +211,9 @@ eliminar la cuenta.
     `author_name` de lecciones se conservan como crédito); los certificados se conservan con
     `holder_name = 'Titular eliminado'` y `user_id` nulo (un trigger BEFORE DELETE en `auth.users`).
     Solo las fotos de R2 (`avatars/<uid>/`, `deletePrefix`) se borran desde el código.
+*   **Presentación:** Perfil siempre abierto; Correo, Contraseña y Eliminar cuenta son desplegables
+    (`Collapsible` en `components/settings/ui.tsx`, `<details>` nativo; Correo se abre solo con
+    `?email=` o un cambio pendiente). Descargar datos y Cerrar sesión van juntos en una tarjeta simple.
 *   La eliminación es **definitiva**: no hay periodo de gracia ni se atienden recuperaciones. La
     política de privacidad lo describe.
 *   **Orden de despliegue:** aplicar la migración en producción **antes** de desplegar "Eliminar

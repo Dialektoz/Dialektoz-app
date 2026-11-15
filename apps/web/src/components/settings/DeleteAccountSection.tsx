@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, Loader2, Trash2 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { deleteMyAccount } from '@/app/settings/actions';
-import { Card, Field, inputClass } from './ui';
+import { Collapsible, Field, inputClass } from './ui';
 
 /**
  * Delete account, in two steps so nobody does it by accident:
@@ -60,10 +60,10 @@ export default function DeleteAccountSection({ hasPassword, isSuperadmin }: { ha
   };
 
   return (
-    <Card
+    <Collapsible
       danger
       title="Eliminar cuenta"
-      subtitle="Elimina tu cuenta y tus datos de forma permanente. Esta acción no se puede deshacer."
+      summary="Elimina tu cuenta y tus datos de forma permanente."
     >
       {isSuperadmin ? (
         <p className="text-sm text-foreground/60 max-w-md">
@@ -223,6 +223,6 @@ export default function DeleteAccountSection({ hasPassword, isSuperadmin }: { ha
           </div>
         )}
       </AnimatePresence>
-    </Card>
+    </Collapsible>
   );
 }

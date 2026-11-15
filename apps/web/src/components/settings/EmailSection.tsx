@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { Loader2, Check, AlertCircle, Mail } from 'lucide-react';
-import { Card, Field, inputClass } from './ui';
+import { Collapsible, Field, inputClass } from './ui';
 
 const PROVIDER_LABEL: Record<string, string> = { google: 'Google', facebook: 'Facebook', apple: 'Apple' };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -19,11 +19,13 @@ export default function EmailSection({
   pendingEmail,
   hasPassword,
   provider,
+  defaultOpen = false,
 }: {
   currentEmail: string | null;
   pendingEmail: string | null;
   hasPassword: boolean;
   provider: string | null;
+  defaultOpen?: boolean;
 }) {
   const [newEmail, setNewEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -65,7 +67,12 @@ export default function EmailSection({
   };
 
   return (
-    <Card title="Correo electrónico" subtitle="Es el correo con el que entras y donde recibes los avisos de tu cuenta.">
+    <Collapsible
+      title="Correo electrónico"
+      summary={pendingEmail ? `Pendiente de confirmar: ${pendingEmail}` : (currentEmail ?? 'Sin correo')}
+      defaultOpen={defaultOpen}
+    >
+      <p className="text-sm text-foreground/50 mb-4">Es el correo con el que entras y donde recibes los avisos de tu cuenta.</p>
       <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm mb-4 max-w-md">
         <Mail className="size-4 text-muted-foreground shrink-0" />
         <span className="truncate font-medium">{currentEmail ?? 'Sin correo'}</span>
@@ -107,6 +114,6 @@ export default function EmailSection({
           )}
         </form>
       )}
-    </Card>
+    </Collapsible>
   );
 }

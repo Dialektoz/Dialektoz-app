@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, LogOut } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
-import { Card } from './ui';
 
 export default function SessionSection() {
   const router = useRouter();
@@ -18,7 +17,8 @@ export default function SessionSection() {
   };
 
   return (
-    <Card title="Sesión" subtitle="Cierra la sesión en este dispositivo.">
+    <div>
+      <p className="text-sm text-foreground/50 mb-3">Cierra la sesión en este dispositivo.</p>
       <button
         type="button"
         onClick={logout}
@@ -27,6 +27,6 @@ export default function SessionSection() {
       >
         {busy ? <Loader2 className="size-4 animate-spin" /> : <LogOut className="size-4" />} Cerrar sesión
       </button>
-    </Card>
+    </div>
   );
 }
