@@ -179,11 +179,12 @@ panel `/admin` usa el mismo sidebar (`admin/layout.tsx`); no hay un segundo men�
 
 *   Grupos: **Administración** (primero, solo para el personal) y **Aprender**. El estudiante no ve
     rótulos de grupo.
-*   Matriz: superadmin ve todo; admin ve Resumen, Profesores, Usuarios y Configuración del sistema (no
+*   Matriz: superadmin ve todo; admin ve Resumen, Profesores y Usuarios (no
     Contenido); teacher ve solo Contenido; el resto no ve Administración. Es **solo presentación**:
     el acceso lo imponen el middleware y RLS. Si cambias la matriz en el middleware, cámbiala también
     en `navItems.ts`.
-*   "Configuración del sistema" (`/admin/settings`) todavía no tiene página: da el 404 a propósito.
+*   No hay página de ajustes de sistema (se quitó "Configuración del sistema" del menú). Si algún día
+    hace falta, crear `/admin/settings` y volver a añadir su entrada en `navItems.ts`.
 *   Móvil: en rutas de estudiante, las 5 pestañas + "Admin" para el personal; dentro de `/admin`,
     las pestañas de administración del rol + "Plataforma".
 *   `MobileBottomNav` es un wrapper de servidor (lee el rol de `getCurrentProfile`, cacheado), así

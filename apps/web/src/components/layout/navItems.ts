@@ -6,7 +6,6 @@ import {
   GraduationCap,
   Home,
   LayoutDashboard,
-  Settings,
   ShieldCheck,
   Users,
 } from 'lucide-react';
@@ -62,9 +61,7 @@ export function navGroupsFor(role: string): NavGroup[] {
   if (canManageUsers(role)) {
     admin.push(
       { href: '/admin/teachers', label: 'Profesores', icon: GraduationCap, match: 'prefix' },
-      { href: '/admin/users', label: 'Usuarios', icon: Users, match: 'prefix' },
-      // Page not built yet (404 on purpose); kept so the entry is already in place.
-      { href: '/admin/settings', label: 'Configuración del sistema', icon: Settings, match: 'prefix' }
+      { href: '/admin/users', label: 'Usuarios', icon: Users, match: 'prefix' }
     );
   }
 
