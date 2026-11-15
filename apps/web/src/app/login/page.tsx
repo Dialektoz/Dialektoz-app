@@ -23,6 +23,7 @@ function LoginInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const justReset = searchParams.get('reset') === 'ok'
+  const accountDeleted = searchParams.get('deleted') === '1'
   const linkErrorCode = searchParams.get('error')
   const linkErrorMessage = (() => {
     switch (linkErrorCode) {
@@ -171,6 +172,13 @@ function LoginInner() {
               <div className="bg-green-500/10 border border-green-500/20 text-green-400 text-xs py-2.5 px-4 rounded-lg flex items-center gap-2">
                 <CheckCircle2 size={14} className="shrink-0" />
                 <span>Contraseña actualizada. Inicia sesión con la nueva.</span>
+              </div>
+            )}
+
+            {accountDeleted && !error && (
+              <div className="bg-green-500/10 border border-green-500/20 text-green-400 text-xs py-2.5 px-4 rounded-lg flex items-center gap-2">
+                <CheckCircle2 size={14} className="shrink-0" />
+                <span>Tu cuenta fue eliminada. Gracias por haber sido parte de Dialektoz.</span>
               </div>
             )}
 

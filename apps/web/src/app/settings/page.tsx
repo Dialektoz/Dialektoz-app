@@ -9,6 +9,8 @@ import SettingsForm from '@/components/settings/SettingsForm';
 import PasswordSection from '@/components/settings/PasswordSection';
 import EmailSection from '@/components/settings/EmailSection';
 import DataExportSection from '@/components/settings/DataExportSection';
+import SessionSection from '@/components/settings/SessionSection';
+import DeleteAccountSection from '@/components/settings/DeleteAccountSection';
 import type { ProfileValues } from '@/components/settings/SettingsForm';
 
 export const metadata = {
@@ -80,7 +82,9 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               provider={provider}
             />
             <PasswordSection email={user.email ?? profile?.email ?? null} hasPassword={hasPassword} />
+            <SessionSection />
             <DataExportSection />
+            <DeleteAccountSection hasPassword={hasPassword} isSuperadmin={profile?.role === 'superadmin'} />
           </div>
         </div>
       </main>
