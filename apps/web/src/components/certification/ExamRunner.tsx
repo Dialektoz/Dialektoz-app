@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import type { PublicQuestion, AnswerValue } from '@/lib/exam/grading';
+import type { PublicQuestion, PublicContext, AnswerValue } from '@/lib/exam/grading';
+import { getBlock } from '@/components/editor/blocks/registry';
 import {
   Clock, Loader2, ArrowLeft, ArrowRight, AlertCircle, Award,
-  CheckCircle2, XCircle, FileQuestion, ShieldCheck,
+  CheckCircle2, XCircle, FileQuestion, ShieldCheck, ArrowLeftRight, ChevronUp, ChevronDown,
 } from 'lucide-react';
 
 interface StartResponse {
@@ -211,6 +212,7 @@ export default function ExamRunner({
 
       {/* Question */}
       <div className="rounded-2xl border border-border bg-card p-5 md:p-7 mb-5 min-h-[220px]">
+        {question.context && question.context.length > 0 && <QuestionContext items={question.context} />}
         <QuestionInput
           question={question}
           value={answers[question.id] ?? null}
@@ -395,7 +397,247 @@ function QuestionInput({
         </>
       );
 
+    case 'matching':
+      return (
+        <>
+          {prompt}
+          <MatchingInput question={question} value={value} onChange={onChange} />
+        </>
+      );
+
+    case 'ordering':
+      return (
+        <>
+          {prompt}
+          <OrderingInput question={question} value={value} onChange={onChange} />
+        </>
+      );
+
+    case 'classification':
+      return (
+        <>
+          {prompt}
+          <ClassificationInput question={question} value={value} onChange={onChange} />
+        </>
+      );
+
+    case 'image-labeling':
+      return (
+        <>
+          {prompt}
+          <ImageLabelingInput question={question} value={value} onChange={onChange} />
+        </>
+      );
+
+    case 'image-hotspot':
+      return (
+        <>
+          {prompt}
+          <ImageHotspotInput question={question} value={value} onChange={onChange} />
+        </>
+      );
+
     default:
       return prompt;
   }
+}
+
+/* ── Inputs for the activity-style questions (no feedback, answers by content) ─── */
+
+const selectClass = 'flex-1 min-w-0 p-3 rounded-lg border border-border bg-background text-sm outline-none focus:border-primary';
+
+/** Display blocks (image, audio, callout…) that belong to the question, shown above it. */
+function QuestionContext({ items }: { items: PublicContext[] }) {
+  return (
+    <div className="mb-4">
+      {items.map((c) => {
+        const def = getBlock(c.type);
+        if (!def) return null;
+        const Renderer = def.Renderer;
+        return <Renderer key={c.id} data={c.data} />;
+      })}
+    </div>
+  );
+}
+
+function MatchingInput({ question, value, onChange }: { question: PublicQuestion; value: AnswerValue; onChange: (v: AnswerValue) => void }) {
+  const lefts = question.lefts ?? [];
+  const picks = Array.isArray(value) ? (value as string[]) : [];
+  return (
+    <div className="space-y-2">
+      {lefts.map((left, i) => (
+        <div key={i} className="flex items-center gap-3">
+          <div className="flex-1 p-3 rounded-lg border border-border bg-background/60 text-sm font-medium">{left}</div>
+          <ArrowLeftRight className="size-4 text-foreground/40 shrink-0" />
+          <select
+            value={picks[i] ?? ''}
+            onChange={(e) => onChange(lefts.map((_, j) => (j === i ? e.target.value : (picks[j] ?? ''))))}
+            className={selectClass}
+          >
+            <option value="" disabled>Selecciona…</option>
+            {(question.options ?? []).map((o, idx) => <option key={idx} value={o}>{o}</option>)}
+          </select>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function OrderingInput({ question, value, onChange }: { question: PublicQuestion; value: AnswerValue; onChange: (v: AnswerValue) => void }) {
+  // Untouched = null: the starting order is never the solution, so it counts as unanswered either way.
+  const order = Array.isArray(value) ? (value as string[]) : (question.options ?? []);
+  const move = (from: number, to: number) => {
+    if (to < 0 || to >= order.length) return;
+    const next = [...order];
+    const [m] = next.splice(from, 1);
+    next.splice(to, 0, m);
+    onChange(next);
+  };
+  return (
+    <>
+      <p className="text-xs text-foreground/50 -mt-4 mb-4">Usa las flechas para ordenar</p>
+      <div className="space-y-2">
+        {order.map((item, i) => (
+          <div key={`${item}-${i}`} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-background/60">
+            <span className="text-xs font-bold text-foreground/50 w-5 text-center shrink-0">{i + 1}</span>
+            <span className="flex-1 text-sm">{item}</span>
+            <button type="button" onClick={() => move(i, i - 1)} disabled={i === 0} aria-label="Subir" className="p-1 rounded-md text-foreground/60 hover:bg-muted disabled:opacity-30">
+              <ChevronUp className="size-4" />
+            </button>
+            <button type="button" onClick={() => move(i, i + 1)} disabled={i === order.length - 1} aria-label="Bajar" className="p-1 rounded-md text-foreground/60 hover:bg-muted disabled:opacity-30">
+              <ChevronDown className="size-4" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function ClassificationInput({ question, value, onChange }: { question: PublicQuestion; value: AnswerValue; onChange: (v: AnswerValue) => void }) {
+  const categories = question.categories ?? [];
+  const placed: string[][] =
+    Array.isArray(value) && (value as unknown[]).every(Array.isArray)
+      ? (value as string[][])
+      : categories.map(() => []);
+  // Items still in the pool: every option minus one occurrence per placed item.
+  const pool = [...(question.options ?? [])];
+  for (const label of placed.flat()) {
+    const at = pool.indexOf(label);
+    if (at >= 0) pool.splice(at, 1);
+  }
+  // Tap an item, then tap the category (or the pool to take it back).
+  const [sel, setSel] = useState<{ label: string; from: number } | null>(null);
+
+  const moveTo = (to: number) => {
+    if (!sel) return;
+    const next = placed.map((l) => [...l]);
+    if (sel.from >= 0) {
+      const at = next[sel.from].indexOf(sel.label);
+      if (at >= 0) next[sel.from].splice(at, 1);
+    }
+    if (to >= 0) next[to].push(sel.label);
+    setSel(null);
+    onChange(next);
+  };
+
+  const chip = (label: string, from: number, key: string) => {
+    const on = sel?.label === label && sel.from === from;
+    return (
+      <button
+        key={key}
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setSel(on ? null : { label, from });
+        }}
+        className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${on ? 'border-primary bg-primary/15 text-primary ring-2 ring-primary/40' : 'border-border bg-background hover:border-primary/50'}`}
+      >
+        {label}
+      </button>
+    );
+  };
+
+  return (
+    <>
+      <p className="text-xs text-foreground/50 -mt-4 mb-4">
+        {sel ? 'Ahora toca la categoría donde va este elemento.' : 'Toca un elemento y luego su categoría.'}
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+        {categories.map((name, ci) => (
+          <div
+            key={ci}
+            onClick={() => moveTo(ci)}
+            className={`rounded-xl border-2 border-dashed p-3 min-h-[90px] transition-colors ${sel ? 'border-primary/60 bg-primary/5 cursor-pointer' : 'border-border bg-background/40'}`}
+          >
+            <p className="text-xs font-bold uppercase tracking-wider text-foreground/50 mb-2">{name}</p>
+            <div className="flex flex-wrap gap-2">{placed[ci]?.map((label, k) => chip(label, ci, `${ci}-${k}-${label}`))}</div>
+          </div>
+        ))}
+      </div>
+      <div onClick={() => moveTo(-1)} className={`rounded-xl border p-3 min-h-[56px] ${sel ? 'border-primary/40 cursor-pointer' : 'border-border bg-muted/20'}`}>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 mb-2">Elementos por clasificar</p>
+        <div className="flex flex-wrap gap-2">
+          {pool.map((label, k) => chip(label, -1, `pool-${k}-${label}`))}
+          {pool.length === 0 && <span className="text-xs text-foreground/40 italic">Todo clasificado</span>}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function PinnedImage({ question, selected, onPick }: { question: PublicQuestion; selected?: number | null; onPick?: (i: number) => void }) {
+  return (
+    <div className="relative w-full rounded-xl overflow-hidden border border-border mb-4">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={question.imageUrl} alt="" className="w-full block" />
+      {(question.points ?? []).map((p, i) => {
+        const className = `absolute -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full text-sm font-bold flex items-center justify-center border-2 border-background shadow-lg transition-transform ${
+          selected === i ? 'bg-primary text-primary-foreground ring-4 ring-primary/40 scale-110' : 'bg-primary/80 text-primary-foreground'
+        } ${onPick ? 'hover:scale-110 cursor-pointer' : ''}`;
+        const style = { left: `${p.x}%`, top: `${p.y}%` };
+        return onPick ? (
+          <button key={i} type="button" aria-label={`Punto ${i + 1}`} onClick={() => onPick(i)} style={style} className={className}>{i + 1}</button>
+        ) : (
+          <span key={i} style={style} className={className}>{i + 1}</span>
+        );
+      })}
+    </div>
+  );
+}
+
+function ImageLabelingInput({ question, value, onChange }: { question: PublicQuestion; value: AnswerValue; onChange: (v: AnswerValue) => void }) {
+  const points = question.points ?? [];
+  const picks = Array.isArray(value) ? (value as string[]) : [];
+  if (!question.imageUrl) return null;
+  return (
+    <>
+      <PinnedImage question={question} />
+      <div className="space-y-2">
+        {points.map((_, i) => (
+          <div key={i} className="flex items-center gap-3">
+            <span className="size-7 shrink-0 rounded-full bg-primary/15 text-primary text-sm font-bold flex items-center justify-center">{i + 1}</span>
+            <select
+              value={picks[i] ?? ''}
+              onChange={(e) => onChange(points.map((__, j) => (j === i ? e.target.value : (picks[j] ?? ''))))}
+              className={selectClass}
+            >
+              <option value="" disabled>Selecciona la etiqueta…</option>
+              {(question.options ?? []).map((o, idx) => <option key={idx} value={o}>{o}</option>)}
+            </select>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function ImageHotspotInput({ question, value, onChange }: { question: PublicQuestion; value: AnswerValue; onChange: (v: AnswerValue) => void }) {
+  if (!question.imageUrl) return null;
+  return (
+    <>
+      <PinnedImage question={question} selected={typeof value === 'number' ? value : null} onPick={(i) => onChange(i)} />
+      <p className="text-xs text-foreground/50">Toca el punto que corresponde.</p>
+    </>
+  );
 }
