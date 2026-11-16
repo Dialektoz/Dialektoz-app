@@ -20,6 +20,11 @@ interface ImportLessonDialogProps {
   onClose: () => void;
   /** Insert the blocks into the lesson; returns the lesson fields that were filled in (for the summary). */
   onApply: (result: ImportResult) => string[];
+  /**
+   * Which tab the import was opened from. From 'quiz' (Evaluación) a bare list of blocks is read as
+   * questions; a lesson.json behaves the same from both tabs (content -> Contenido, quiz -> Evaluación).
+   */
+  target?: 'content' | 'quiz';
 }
 
 // Match file names ignoring case and accent composition (macOS decomposes accents).
@@ -67,7 +72,7 @@ function verificationNotes(types: string[], quizTypes: string[], quizCount: numb
   return notes;
 }
 
-export function ImportLessonDialog({ onClose, onApply }: ImportLessonDialogProps) {
+export function ImportLessonDialog({ onClose, onApply, target = 'content' }: ImportLessonDialogProps) {
   const { upload, progress: filePct, error: uploadError } = useR2Upload();
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -91,7 +96,7 @@ export function ImportLessonDialog({ onClose, onApply }: ImportLessonDialogProps
     if (!jsonText.trim()) return null;
     const parsed = extractJson(jsonText);
     if (parsed.error) return { errors: [parsed.error], fileErrors: [] as string[] };
-    const lesson = validateLesson(parsed.value, { skills: SKILLS, mode: 'editor' });
+    const lesson = validateLesson(parsed.value, { skills: SKILLS, mode: 'editor', bareArrayTarget: target });
     if (!lesson.fields || !lesson.content) return { errors: lesson.errors, fileErrors: [] as string[] };
 
     const errors: string[] = [];
@@ -124,7 +129,7 @@ export function ImportLessonDialog({ onClose, onApply }: ImportLessonDialogProps
       quizTypes: flattenTypes(quiz),
       quizCount: quiz.length,
     };
-  }, [jsonText, fileByName, files]);
+  }, [jsonText, fileByName, files, target]);
 
   const jsonErrors = check?.errors ?? [];
   const fileErrors = check?.fileErrors ?? [];
@@ -283,6 +288,14 @@ export function ImportLessonDialog({ onClose, onApply }: ImportLessonDialogProps
                 Pega lo que te dio el chat (con o sin texto alrededor) y elige o arrastra aquí los archivos que usa (imágenes, audio,
                 video, PDF). Los bloques se insertan en la lección que estás editando; las preguntas de <code>quiz</code> van a
                 Evaluación.
+                {target === 'quiz' && (
+                  <>
+                    {' '}
+                    Como lo abriste desde <b>Evaluación</b>, una lista simple de bloques se lee como preguntas y se inserta en el lugar
+                    donde pulsaste «+». Aquí solo se aceptan los tipos de la Evaluación (texto, imagen, audio, callout y las actividades
+                    calificadas).
+                  </>
+                )}
               </p>
 
               <div className="flex flex-wrap items-center gap-2">

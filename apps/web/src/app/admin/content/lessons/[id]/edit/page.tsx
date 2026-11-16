@@ -53,6 +53,8 @@ export default function LessonEditorPage() {
   // JSON import dialog: index to insert at (null = closed). Bumping builderKey re-mounts the
   // content LessonBuilder, which only copies its initial blocks on mount, so it shows the import.
   const [importAt, setImportAt] = useState<number | null>(null);
+  // Which tab's "+" menu opened the import: decides where the imported blocks are inserted.
+  const [importTarget, setImportTarget] = useState<'content' | 'quiz'>('content');
   const [builderKey, setBuilderKey] = useState(0);
   const [resolvedLevelCode, setResolvedLevelCode] = useState<string | null>(null);
 
@@ -256,10 +258,11 @@ export default function LessonEditorPage() {
     setIsSaving(false);
   };
 
-  // Insert imported blocks at `importAt` and fill in EMPTY lesson fields (never overwrites).
+  // Insert imported blocks and fill in EMPTY lesson fields (never overwrites). The tab the import was
+  // opened from gets its blocks at the clicked "+" position; the other tab's blocks go at its end.
   // Returns the names of the fields that were filled, for the dialog summary.
   const applyImport = ({ content: incoming, quiz: incomingQuiz, fields }: ImportResult): string[] => {
-    const at = importAt ?? blocks.length;
+    const at = importTarget === 'content' ? (importAt ?? blocks.length) : blocks.length;
     const isEmptyText = (v: unknown) => !(typeof v === 'string' ? v : (v as { t?: string } | null)?.t ?? '').trim();
     if (incoming.length > 0) {
       setBlocks((prev) => {
@@ -272,8 +275,15 @@ export default function LessonEditorPage() {
         return next;
       });
     }
-    // Graded questions go to the Evaluación tab (appended, never replacing what's there).
-    if (incomingQuiz.length > 0) setQuizBlocks((prev) => [...prev, ...incomingQuiz]);
+    // Graded questions go to the Evaluación tab (never replacing what's there).
+    if (incomingQuiz.length > 0) {
+      setQuizBlocks((prev) => {
+        const pos = importTarget === 'quiz' ? Math.min(importAt ?? prev.length, prev.length) : prev.length;
+        const next = [...prev];
+        next.splice(pos, 0, ...incomingQuiz);
+        return next;
+      });
+    }
     setBuilderKey((k) => k + 1);
 
     const filled: string[] = [];
@@ -575,7 +585,10 @@ export default function LessonEditorPage() {
                     key={`content-${builderKey}`}
                     initialBlocks={blocks}
                     onChange={setBlocks}
-                    onImport={(insertAt) => setImportAt(insertAt)}
+                    onImport={(insertAt) => {
+                      setImportTarget('content');
+                      setImportAt(insertAt);
+                    }}
                   />
                 ) : (
                   <LessonBuilder
@@ -584,6 +597,10 @@ export default function LessonEditorPage() {
                     onChange={setQuizBlocks}
                     allowedTypes={QUIZ_EDITOR_TYPES}
                     emptyLabel="Añadir la primera pregunta"
+                    onImport={(insertAt) => {
+                      setImportTarget('quiz');
+                      setImportAt(insertAt);
+                    }}
                   />
                 )}
               </div>
@@ -592,7 +609,7 @@ export default function LessonEditorPage() {
         </>
       )}
 
-      {importAt !== null && <ImportLessonDialog onClose={() => setImportAt(null)} onApply={applyImport} />}
+      {importAt !== null && <ImportLessonDialog target={importTarget} onClose={() => setImportAt(null)} onApply={applyImport} />}
     </div>
   );
 }

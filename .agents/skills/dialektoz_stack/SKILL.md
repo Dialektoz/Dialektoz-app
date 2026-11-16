@@ -164,8 +164,24 @@ documentos.
 *   **Seguridad:** los renderers no sanitizan URLs. El importador solo acepta `https://`, y para
     `<iframe>` (embed y video no directo) solo los hosts de `IFRAME_HOSTS`; los enlaces de texto
     Tiptap deben ser http(s)/mailto/relativos.
-*   **Puntaje:** solo puntúa lo que va en `quiz` (Evaluación, tipos de `QUIZ_EDITOR_TYPES`); las
-    actividades de `content` son práctica libre.
+*   **Puntaje:** solo puntúa lo que va en `quiz` (Evaluación, tipos de `QUIZ_EDITOR_TYPES` en
+    `src/lib/exam/grading.ts`); las actividades de `content` son práctica libre. Cada bloque calificado vale
+    **1 punto, todo o nada**.
+*   **Qué admite la Evaluación:** `heading`, `text`, los de solo mostrar (`image`, `audio`, `callout`) y los
+    calificados (`quiz`, `multi-choice`, `true-false`, `fill-blank`, `short-answer`, `matching`, `ordering`,
+    `classification`, `image-labeling`, `image-hotspot` con `correctSpot`). Hay **dos** consumidores: la
+    Evaluación dentro de la lección (`EvaluationSlides`, usa los Renderer de siempre: con feedback y
+    "Reintentar") y el **examen de certificación** (`ExamRunner` + `/api/exam/*`: sin feedback, se califica
+    en el servidor con `gradeBlock`; las preguntas llegan sin respuestas vía `toPublicQuestion`). Un tipo
+    nuevo de pregunta hay que añadirlo en ambos y en `QUIZ_TYPES` de `lessonImport.ts` (una prueba comprueba
+    que las dos listas coincidan). `image`/`audio`/`callout` viajan con la pregunta que les sigue
+    (`collectExamQuestions`), para que el barajado del examen no los separe.
+*   **Importar desde la pestaña Evaluación:** el menú "+" de Evaluación también tiene "Importar desde JSON" (mismo
+    diálogo y validador). Desde ahí el `quiz` entra en la posición pulsada y una lista simple de bloques se lee
+    como preguntas (`bareArrayTarget: 'quiz'` en `validateLesson`); desde Contenido todo sigue igual
+    (`content` en la posición, `quiz` al final). Ejemplo: `scripts/import-lesson/examples/evaluation-only/`.
+*   **Pruebas:** `npm test` en `apps/web` (Node, sin dependencias): importador y calificación del examen en
+    `src/lib/__tests__/`.
 
 Los validadores **replican a mano** las formas de `createDefault` de cada bloque; si cambia el formato
 de un bloque, hay que actualizar `src/lib/lessonImport.ts` y `PROMPT.md`. El módulo no tiene imports a

@@ -1,0 +1,19 @@
+{
+  "level": "a1",
+  "order": 1,
+  "title": "Evaluación de ejemplo (solo quiz)",
+  "description": "Ejemplo de un lesson.json que solo trae la Evaluación: sin \"content\". En el editor se importa desde la pestaña Evaluación (menú \"+\" → Importar desde JSON). Usa demo-1.png (cualquier imagen renombrada).",
+  "quiz": [
+    { "type": "heading", "text": "Evaluación", "level": 2 },
+    { "type": "text", "paragraphs": ["Responde todas las preguntas. Esto puntúa y cuenta para el examen de certificación."] },
+    { "type": "quiz", "question": "Which one is a verb?", "options": ["run", "table", "blue"], "correctIndex": 0 },
+    { "type": "true-false", "statement": "\"He\" is a pronoun.", "answer": true },
+    { "type": "matching", "prompt": "Match the words.", "pairs": [{ "left": "cat", "right": "gato" }, { "left": "dog", "right": "perro" }] },
+    { "type": "ordering", "prompt": "Order the words to make a sentence.", "items": ["I", "like", "pizza"] },
+    { "type": "classification", "prompt": "Classify the words.", "categories": [{ "name": "Animals", "items": ["cat", "dog"] }, { "name": "Fruits", "items": ["apple", "banana"] }] },
+    { "type": "callout", "variant": "tip", "text": "Mira la imagen: las dos preguntas siguientes son sobre ella." },
+    { "type": "image", "img": "demo-1.png", "alt": "Imagen de prueba" },
+    { "type": "image-labeling", "img": "demo-1.png", "prompt": "Pon la etiqueta correcta.", "points": [{ "x": 30, "y": 40, "label": "Left" }, { "x": 75, "y": 55, "label": "Right" }] },
+    { "type": "image-hotspot", "img": "demo-1.png", "prompt": "Toca el punto de la derecha.", "spots": [{ "x": 30, "y": 40, "label": "Left" }, { "x": 75, "y": 55, "label": "Right" }], "correctSpot": 1 }
+  ]
+}

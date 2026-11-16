@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { flattenBlocks, isSupportedQuestion } from './exam/grading';
+import { flattenBlocks, isExamQuestion } from './exam/grading';
 
 export interface CertificationLevel {
   levelId: string;
@@ -62,7 +62,7 @@ export async function getCertificationLevels(
     const done = levelLessons.filter((l) => completed.has(l.id)).length;
 
     const questionCount = levelLessons.reduce(
-      (sum, l) => sum + flattenBlocks(l.quiz).filter((b) => isSupportedQuestion(b.type)).length,
+      (sum, l) => sum + flattenBlocks(l.quiz).filter(isExamQuestion).length,
       0
     );
     const minutes = levelLessons.reduce((sum, l) => sum + (l.duration_minutes ?? 0), 0);
