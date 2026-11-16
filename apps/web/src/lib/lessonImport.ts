@@ -157,6 +157,12 @@ export interface ValidateOptions {
    * ignored, and a bare array of blocks is accepted too.
    */
   mode: 'cli' | 'editor';
+  /**
+   * Editor mode only: where a bare list of blocks goes. 'content' (default) is the Contenido tab;
+   * 'quiz' is used when the import is opened from the Evaluación tab, so the list is validated
+   * with the Evaluación block types.
+   */
+  bareArrayTarget?: 'content' | 'quiz';
 }
 
 export function validateLesson(
@@ -170,7 +176,8 @@ export function validateLesson(
     if (raw.length === 0) return { errors: ['La lista de bloques está vacía.'] };
     return {
       errors,
-      content: raw,
+      content: opts.bareArrayTarget === 'quiz' ? [] : raw,
+      quiz: opts.bareArrayTarget === 'quiz' ? raw : undefined,
       fields: { level: null, order: null, title: null, skill_type: null, description: null, duration_minutes: null, author: null },
     };
   }

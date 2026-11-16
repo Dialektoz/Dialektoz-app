@@ -132,3 +132,51 @@ test('el lesson.json de ejemplo (all-blocks) es válido, con los tipos nuevos en
   const types = quiz.map((b) => b.type);
   for (const t of ['matching', 'ordering', 'classification', 'callout', 'image', 'image-labeling', 'image-hotspot']) assert.ok(types.includes(t), t);
 });
+
+// ── importar desde la pestaña Evaluación ────────────────────────────────────
+test('lista simple: por defecto es content; desde Evaluación es quiz', async () => {
+  const { validateLesson } = await import('../lessonImport.ts');
+  const { SKILLS } = await import('../skills.ts');
+  const list = [{ type: 'true-false', statement: 'x', answer: true }];
+
+  const asContent = validateLesson(list, { skills: SKILLS, mode: 'editor' });
+  assert.equal(asContent.content?.length, 1);
+  assert.equal(asContent.quiz, undefined);
+
+  const asQuiz = validateLesson(list, { skills: SKILLS, mode: 'editor', bareArrayTarget: 'quiz' });
+  assert.deepEqual(asQuiz.errors, []);
+  assert.deepEqual(asQuiz.content, []);
+  assert.equal(asQuiz.quiz?.length, 1);
+
+  // y lo que va en quiz se valida con los tipos de Evaluación
+  const errors: string[] = [];
+  const ctx = { errors, files: new Map(), resolveFile: (f: string) => f, newId: (p: string) => p };
+  buildBlocks([{ type: 'gallery', images: [] }], ctx, 'quiz');
+  assert.ok(errors.length > 0);
+});
+
+test('un lesson.json de objeto no depende de bareArrayTarget', async () => {
+  const { validateLesson } = await import('../lessonImport.ts');
+  const { SKILLS } = await import('../skills.ts');
+  const raw = { quiz: [{ type: 'true-false', statement: 'x', answer: true }] };
+  const a = validateLesson(raw, { skills: SKILLS, mode: 'editor' });
+  const b = validateLesson(raw, { skills: SKILLS, mode: 'editor', bareArrayTarget: 'quiz' });
+  assert.deepEqual(a, b);
+  assert.equal(a.quiz?.length, 1);
+});
+
+test('el ejemplo evaluation-only (solo quiz) es válido', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { SKILLS } = await import('../skills.ts');
+  const { validateLesson } = await import('../lessonImport.ts');
+  const raw = JSON.parse(readFileSync(new URL('../../../scripts/import-lesson/examples/evaluation-only/lesson.json', import.meta.url), 'utf8'));
+  for (const mode of ['cli', 'editor'] as const) {
+    const v = validateLesson(raw, { skills: SKILLS, mode });
+    const errors = [...v.errors];
+    const ctx = { errors, files: new Map(), resolveFile: (f: string) => `https://cdn.test/${f}`, newId: (p: string) => p };
+    const quiz = buildBlocks(v.quiz ?? [], ctx, 'quiz');
+    assert.deepEqual(errors, [], mode);
+    assert.equal(v.content?.length, 0);
+    assert.ok(quiz.length >= 10);
+  }
+});

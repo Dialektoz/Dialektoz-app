@@ -7,7 +7,9 @@ Todo lo importado se abre y se edita en el editor igual que cualquier lección.
 > **Sin llaves ni terminal:** el mismo formato de `lesson.json` se puede importar **desde el
 > editor**: en la pestaña Contenido, abre el menú "+" y elige **Importar desde JSON** (pie del
 > menú). Pegas el JSON, eliges las imágenes y se **insertan los bloques en la lección abierta**
-> (y se completan los campos vacíos). Ahí `level` y `order` se ignoran. Este documento describe el
+> (y se completan los campos vacíos). Ahí `level` y `order` se ignoran. **La pestaña Evaluación tiene la
+> misma opción**: el `quiz` se inserta donde pulsaste «+», y una lista simple de bloques pegada ahí se lee como
+> preguntas (ejemplo solo con `quiz`: [`examples/evaluation-only/lesson.json`](examples/evaluation-only/lesson.json)). Este documento describe el
 > comando local, que además puede crear/actualizar una lección completa por (nivel, orden).
 > Ambos usan el validador `src/lib/lessonImport.ts`.
 
