@@ -66,7 +66,7 @@ audio y documento; ideal para probar: usa `demo-1.png` y `demo-2.png`, cualquier
 | `description`, `duration_minutes` | no | Texto / entero ≥ 0. |
 | `author` | no | Nombre que verán los estudiantes (requiere la migración `20261108180000_lesson_author.sql`). |
 | `content` | uno de los dos | Bloques del Contenido, escritos "planos": `{ "type": "...", ...campos }`. |
-| `quiz` | uno de los dos | Preguntas de **Evaluación** (las que puntúan y cuentan para el examen). Solo `heading, text, quiz, multi-choice, true-false, fill-blank, short-answer`. |
+| `quiz` | uno de los dos | Preguntas de **Evaluación** (las que puntúan y cuentan para el examen). Solo estos 15 tipos: `heading, text` (instrucciones) · `image, audio, callout` (solo se muestran, ver abajo) · `quiz, multi-choice, true-false, fill-blank, short-answer, matching, ordering, classification, image-labeling, image-hotspot` (se califican). |
 
 Los archivos se escriben solo con su nombre (sin carpetas) y se reemplazan por la URL pública:
 `"img"` para imágenes y `"file"` para audio, video y documentos (o `"url"` https externa).
@@ -79,16 +79,25 @@ Los archivos se escriben solo con su nombre (sin carpetas) y se reemplazan por l
 | Imágenes | `image` (`img`, `alt`, `caption`) · `gallery` (`images`: `{img, caption}`) |
 | Media | `audio` (`file`|`url`, `title`) · `video` (`file`|`url`, `caption`) · `file` (`file`|`url`, `name`, `showPreview`) · `embed` (`url`, `height` 100–1200) |
 | Estructura | `table` (`rows`, `hasHeader`) · `divider` · `accordion` (`items`: `{title, body}`) · `tabs` (`tabs`: `{label, body}`) · `timeline` (`events`: `{date, title, description}`) · `columns` (`columns`: 2–4 listas de bloques) · `container` (`title`, `variant`, `children`) · `code` (`code`, `language`) · `button` (`label`, `url`, `align`, `variant`) |
-| Actividades | `quiz` (`question`, `options`, `correctIndex`, `feedback`) · `multi-choice` (`correctIndices`) · `true-false` (`statement`, `answer`) · `fill-blank` (`text` con `{{respuesta}}`) · `short-answer` (`answers`, `caseSensitive`) · `ordering` (`items` en el orden correcto) · `matching` (`pairs`: `{left, right}`) · `classification` (`categories`: `{name, items}`) · `swipe` (`categoryLeft`, `categoryRight`, `items`: `{label, category 0|1}`) · `essay` (`minWords`, `placeholder`) · `flashcards` (`cards`: `{front|front_img, front_alt, back}`) · `image-hotspot` (`img`, `spots`: `{x, y, label}`) · `image-labeling` (`img`, `points`: `{x, y, label}`) |
+| Actividades | `quiz` (`question`, `options`, `correctIndex`, `feedback`) · `multi-choice` (`correctIndices`) · `true-false` (`statement`, `answer`) · `fill-blank` (`text` con `{{respuesta}}`) · `short-answer` (`answers`, `caseSensitive`) · `ordering` (`items` en el orden correcto) · `matching` (`pairs`: `{left, right}`) · `classification` (`categories`: `{name, items}`) · `swipe` (`categoryLeft`, `categoryRight`, `items`: `{label, category 0|1}`) · `essay` (`minWords`, `placeholder`) · `flashcards` (`cards`: `{front|front_img, front_alt, back}`) · `image-hotspot` (`img`, `spots`: `{x, y, label}`, `correctSpot` opcional) · `image-labeling` (`img`, `points`: `{x, y, label}`) |
 
 Los textos de `heading`/`callout`/`quote` y de las actividades pueden ser un texto o
 `{ "t": "texto", "c": "#RRGGBB" }` (con color). `x` e `y` son porcentajes (0–100) desde la esquina superior
 izquierda de la imagen.
 
+**Evaluación (`quiz`): cómo puntúa**
+
+- Cada bloque calificado vale **1 punto, todo o nada** (si un solo elemento está mal, el bloque cuenta como incorrecto).
+- `image`, `audio` y `callout` **no puntúan**: viajan con la pregunta que les sigue (la que está justo después, hasta la
+  pregunta anterior). Úsalos justo antes de su pregunta; si quedan al final, sin pregunta después, el examen los ignora.
+- `image-hotspot` solo es pregunta si lleva `correctSpot` (número del punto correcto, empezando en 0): el alumno debe
+  tocar ese punto y las etiquetas no se le muestran. Sin `correctSpot` sigue siendo solo para explorar y no puntúa.
+- En el examen de certificación las respuestas no llegan al navegador: se califican en el servidor.
+
 **Reglas que el importador impone** (un error las lista todas, con la ruta exacta, y no escribe nada):
 cada actividad se valida por su tipo (respuesta correcta dentro de las opciones, huecos `{{ }}` con
 respuesta, categorías 0/1, etiquetas únicas…); campos desconocidos y tipos no soportados se **rechazan**,
-nunca se descartan en silencio; `quiz` solo admite los 7 tipos de arriba. Archivos: imágenes png/jpg/jpeg/webp/gif
+nunca se descartan en silencio; `quiz` solo admite los 15 tipos de arriba. Archivos: imágenes png/jpg/jpeg/webp/gif
 (≤ 10 MB), audio mp3/wav/m4a/ogg (≤ 50 MB), video mp4/webm/mov/m4v (≤ 200 MB), documentos
 pdf/doc(x)/xls(x)/ppt(x)/txt/csv/zip (≤ 50 MB). Enlaces: solo `https://`; para `embed` y videos que no son un archivo
 directo, solo sitios de la lista de `IFRAME_HOSTS` en `src/lib/lessonImport.ts` (YouTube, Vimeo, Genially, Canva,
