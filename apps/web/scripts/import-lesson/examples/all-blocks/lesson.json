@@ -82,6 +82,13 @@
     { "type": "multi-choice", "question": "Select the pronouns.", "options": ["I", "cat", "you"], "correctIndices": [0, 2] },
     { "type": "true-false", "statement": "\"He\" is a pronoun.", "answer": true },
     { "type": "fill-blank", "text": "I {{am}} happy." },
-    { "type": "short-answer", "question": "Plural of \"child\"?", "answers": ["children"], "caseSensitive": false }
+    { "type": "short-answer", "question": "Plural of \"child\"?", "answers": ["children"], "caseSensitive": false },
+    { "type": "matching", "prompt": "Match the words.", "pairs": [{ "left": "cat", "right": "gato" }, { "left": "dog", "right": "perro" }] },
+    { "type": "ordering", "prompt": "Order the words to make a sentence.", "items": ["I", "like", "pizza"] },
+    { "type": "classification", "prompt": "Classify the words.", "categories": [{ "name": "Animals", "items": ["cat", "dog"] }, { "name": "Fruits", "items": ["apple", "banana"] }] },
+    { "type": "callout", "variant": "tip", "text": "Mira la imagen: la siguiente pregunta es sobre ella." },
+    { "type": "image", "img": "demo-1.png", "alt": "Imagen de prueba" },
+    { "type": "image-labeling", "img": "demo-1.png", "prompt": "Pon la etiqueta correcta.", "points": [{ "x": 30, "y": 40, "label": "Left" }, { "x": 75, "y": 55, "label": "Right" }] },
+    { "type": "image-hotspot", "img": "demo-1.png", "prompt": "Toca el punto de la derecha.", "spots": [{ "x": 30, "y": 40, "label": "Left" }, { "x": 75, "y": 55, "label": "Right" }], "correctSpot": 1 }
   ]
 }

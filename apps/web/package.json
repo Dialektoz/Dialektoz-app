@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"src/**/*.test.ts\"",
     "import:lesson": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/import-lesson/index.ts"
   },
   "dependencies": {

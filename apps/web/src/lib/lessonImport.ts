@@ -89,8 +89,17 @@ export const SUPPORTED_TYPES = [
   'swipe', 'essay', 'flashcards', 'image-hotspot', 'image-labeling',
 ];
 
-/** Types the Evaluación tab accepts (src/lib/exam/grading.ts QUIZ_EDITOR_TYPES). */
-export const QUIZ_TYPES = ['heading', 'text', 'quiz', 'multi-choice', 'true-false', 'fill-blank', 'short-answer'];
+/**
+ * Types the Evaluación tab accepts. Mirrors src/lib/exam/grading.ts QUIZ_EDITOR_TYPES (this module
+ * is import-free, so it is a copy; a test keeps the two in sync).
+ *   - display only: image, audio, callout (they go with the question that follows them)
+ *   - graded: the rest, 1 point per block, all or nothing
+ */
+export const QUIZ_TYPES = [
+  'heading', 'text', 'image', 'audio', 'callout',
+  'quiz', 'multi-choice', 'true-false', 'fill-blank', 'short-answer',
+  'matching', 'ordering', 'classification', 'image-labeling', 'image-hotspot',
+];
 
 const TIPTAP_NODES = new Set([
   'doc',
@@ -817,13 +826,17 @@ const BUILDERS: Record<string, Builder> = {
     return { cards };
   },
   'image-hotspot': (b, path, ctx) => {
-    checkKeys(b, ['img', 'prompt', 'spots'], path, ctx.errors);
+    checkKeys(b, ['img', 'prompt', 'spots', 'correctSpot'], path, ctx.errors);
     const spots = list(b.spots, `${path}.spots`, ctx.errors, 1, 'zona').map((s, i) => {
       const p = `${path}.spots[${i}]`;
       const o = rec(s, p, ctx.errors, ['x', 'y', 'label']);
       return { x: num0to100(o.x, `${p}.x`, ctx.errors), y: num0to100(o.y, `${p}.y`, ctx.errors), label: reqStr(o.label, `${p}.label`, ctx.errors) };
     });
-    return { imageUrl: imageField(b, 'img', path, ctx), prompt: cText(b.prompt, `${path}.prompt`, ctx.errors), spots };
+    const base = { imageUrl: imageField(b, 'img', path, ctx), prompt: cText(b.prompt, `${path}.prompt`, ctx.errors), spots };
+    // Optional: index of the one correct spot. With it the block becomes a graded "tap the right spot"
+    // question; without it, it stays a viewer (labels shown on tap).
+    if (b.correctSpot === undefined) return base;
+    return { ...base, correctSpot: intIn(b.correctSpot, 0, Math.max(0, spots.length - 1), `${path}.correctSpot`, ctx.errors) };
   },
   'image-labeling': (b, path, ctx) => {
     checkKeys(b, ['img', 'prompt', 'points'], path, ctx.errors);

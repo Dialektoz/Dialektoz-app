@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
-import { flattenBlocks, isSupportedQuestion, toPublicQuestion, pickRandom } from '@/lib/exam/grading';
+import { collectExamQuestions, toPublicQuestion, pickRandom } from '@/lib/exam/grading';
+import type { RawBlock } from '@/lib/exam/grading';
 
 /**
  * Starts a certification attempt.
@@ -89,12 +90,11 @@ export async function POST(req: Request) {
   }
 
   // The exam is the union of every lesson's evaluation ("quiz") in the level.
-  const pool: { lesson_id: string; block_id: string; block: { id: string; type: string; data: Record<string, unknown> } }[] = [];
+  const pool: { lesson_id: string; block_id: string; block: RawBlock; context: RawBlock[] }[] = [];
   for (const lesson of lessonList) {
-    for (const block of flattenBlocks(lesson.quiz)) {
-      if (isSupportedQuestion(block.type)) {
-        pool.push({ lesson_id: lesson.id, block_id: block.id, block });
-      }
+    // Each question keeps the image/audio/callout blocks written right before it.
+    for (const { block, context } of collectExamQuestions(lesson.quiz)) {
+      pool.push({ lesson_id: lesson.id, block_id: block.id, block, context });
     }
   }
   if (pool.length === 0) {
@@ -103,7 +103,7 @@ export async function POST(req: Request) {
 
   // question_count acts as a cap; by default the exam uses every question.
   const picked = pickRandom(pool, Math.max(exam.question_count, pool.length));
-  const questions = picked.map((p) => toPublicQuestion(p.block)).filter(Boolean);
+  const questions = picked.map((p) => toPublicQuestion(p.block, p.context)).filter(Boolean);
 
   const { data: attempt, error } = await admin
     .from('exam_attempts')
