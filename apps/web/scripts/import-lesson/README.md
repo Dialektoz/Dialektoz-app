@@ -12,6 +12,10 @@ Todo lo importado se abre y se edita en el editor igual que cualquier lección.
 > preguntas (ejemplo solo con `quiz`: [`examples/evaluation-only/lesson.json`](examples/evaluation-only/lesson.json)). Este documento describe el
 > comando local, que además puede crear/actualizar una lección completa por (nivel, orden).
 > Ambos usan el validador `src/lib/lessonImport.ts`.
+>
+> **Ojo con `order`:** el comando local identifica la lección por (`level`, `order`). Si reordenas las
+> lecciones desde `/admin/content` (arrastrar y Guardar orden), los números cambian: antes de reimportar
+> con el comando, comprueba qué lección tiene ahora ese orden. El importador del editor no se afecta.
 
 ## Uso
 

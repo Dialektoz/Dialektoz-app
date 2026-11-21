@@ -180,6 +180,13 @@ documentos.
     diálogo y validador). Desde ahí el `quiz` entra en la posición pulsada y una lista simple de bloques se lee
     como preguntas (`bareArrayTarget: 'quiz'` en `validateLesson`); desde Contenido todo sigue igual
     (`content` en la posición, `quiz` al final). Ejemplo: `scripts/import-lesson/examples/evaluation-only/`.
+*   **Orden de las lecciones:** cada lección tiene `lessons."order"` (se asigna sola al crear: máximo del nivel + 1).
+    En `/admin/content/levels/[id]` (`LessonList.tsx`) se reordena arrastrando o con flechas y **Guardar orden**
+    llama al RPC `reorder_lessons(p_level_id, p_lesson_ids)`, que renumera todo el nivel 1…n en una sola
+    operación (SECURITY INVOKER: manda la RLS de staff; rechaza listas que no sean exactamente las lecciones
+    del nivel). Todo lo del estudiante se ordena por `order` y el desbloqueo secuencial de `record_progress`
+    exige completar las lecciones publicadas con `order` menor. **El importador por terminal identifica la
+    lección por (nivel + `order`)**: tras reordenar, "orden 5" es otra lección.
 *   **Pruebas:** `npm test` en `apps/web` (Node, sin dependencias): importador y calificación del examen en
     `src/lib/__tests__/`.
 
