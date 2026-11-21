@@ -24,6 +24,7 @@ aplican en orden alfabético (que es orden cronológico).
 | `20260723213440_lesson_quiz_section.sql` | Separa cada lección en Contenido y Evaluación |
 | `20261108180000_lesson_author.sql` | Autor por lección (`author_name`, `author_id`), se llena solo al crear. **Aplicar en producción antes de desplegar el código que lo lee** |
 | `20261115000000_account_deletion_support.sql` | Permite **eliminar cuentas**: el perfil se borra con su usuario, los niveles creados quedan sin creador, los certificados se conservan como "Titular eliminado"; sincroniza `profiles.email` al cambiar el correo. **Aplicar en producción antes de desplegar "Eliminar cuenta"** |
+| `20261121000000_reorder_lessons.sql` | Función `reorder_lessons(nivel, lista de ids)`: reordena las lecciones de un nivel de forma atómica (renumera 1…n); usa los permisos de siempre (RLS de staff). **Aplicar en producción antes de desplegar el reordenamiento** |
 
 ## Nota importante sobre el baseline
 
