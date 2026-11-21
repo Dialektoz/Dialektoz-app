@@ -107,7 +107,7 @@ export default function LessonList({ levelId, lessons }: { levelId: string; less
           >
             <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               <div className="flex items-center gap-0.5 shrink-0">
-                {/* Only the handle is draggable (so the delete dialog's text field keeps working); phones use the arrows. */}
+                {/* Only the handle is draggable (so the delete dialog's text field keeps working); touch devices use the arrows. */}
                 <div
                   draggable={!saving}
                   onDragStart={(e) => {
@@ -119,11 +119,12 @@ export default function LessonList({ levelId, lessons }: { levelId: string; less
                   }}
                   onDragEnd={() => { setDragFrom(null); setDragOver(null); }}
                   title="Arrastra para reordenar"
-                  className="hidden md:block p-0.5 cursor-grab active:cursor-grabbing"
+                  className="hidden [@media(hover:hover)_and_(pointer:fine)]:block p-0.5 cursor-grab active:cursor-grabbing"
                 >
                   <GripVertical className="w-4 h-4 text-muted-foreground/60" aria-hidden />
                 </div>
-                <div className="flex flex-col">
+                {/* With a mouse the arrows appear on hover/keyboard focus; on touch devices they are always visible. */}
+                <div className="flex flex-col transition-opacity [@media(hover:hover)_and_(pointer:fine)]:opacity-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover:opacity-100 [@media(hover:hover)_and_(pointer:fine)]:focus-within:opacity-100">
                   <button
                     type="button"
                     onClick={() => move(idx, idx - 1)}
