@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, PlusCircle, BookOpen, Settings, FileText } from 'lucide-react';
+import { ArrowLeft, PlusCircle, BookOpen } from 'lucide-react';
 import { createClient } from '@/utils/supabase/server';
 import { DeleteLevelButton } from '@/components/dashboard/DeleteLevelButton';
-import { DeleteLessonButton } from '@/components/dashboard/DeleteLessonButton';
 import PublishLevelToggle from './PublishLevelToggle';
 import EditLevelDialog from './EditLevelDialog';
+import LessonList from './LessonList';
 
 export default async function LevelAdminDashboard({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
@@ -106,8 +106,8 @@ export default async function LevelAdminDashboard({ params }: { params: Promise<
       <h3 className="text-xl font-bold mb-4 border-b border-border/50 pb-2">
         Material Existente ({realLessons.length})
       </h3>
-      <div className="flex flex-col gap-3">
-        {realLessons.length === 0 ? (
+      {realLessons.length === 0 ? (
+        <div className="flex flex-col gap-3">
           <div className="text-center py-12 border-2 border-dashed border-border/50 rounded-xl bg-muted/10">
             <BookOpen className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
             <h3 className="text-lg font-medium text-foreground">El nivel está vacío</h3>
@@ -115,68 +115,21 @@ export default async function LevelAdminDashboard({ params }: { params: Promise<
               Empieza a construir el temario creando tu primera lección interactiva.
             </p>
           </div>
-        ) : (
-          realLessons.map((lesson, idx) => {
-            const blockCount = Array.isArray(lesson.content) ? lesson.content.length : 0;
-            return (
-              <div
-                key={lesson.id}
-                className="flex items-center justify-between p-4 bg-card border border-border/60 hover:border-primary/50 transition-colors rounded-xl cursor-default group"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center font-bold text-muted-foreground group-hover:bg-primary/20 group-hover:text-primary transition-colors">
-                    {lesson.order || idx + 1}
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-foreground flex items-center gap-2">
-                      {lesson.title}
-                      {lesson.published ? (
-                        <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-green-500/15 text-green-600 font-bold">
-                          Publicada
-                        </span>
-                      ) : (
-                        <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-muted text-muted-foreground font-bold">
-                          Borrador
-                        </span>
-                      )}
-                    </h4>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                      {lesson.skill_type && (
-                        <>
-                          <span className="uppercase text-[10px] tracking-wider px-2 py-0.5 rounded-sm bg-primary/10 text-primary">
-                            {lesson.skill_type}
-                          </span>
-                          <span>•</span>
-                        </>
-                      )}
-                      <span className="uppercase text-[10px] tracking-wider px-2 py-0.5 rounded-sm bg-muted flex items-center gap-1">
-                        <FileText className="w-3 h-3" /> Lección
-                      </span>
-                      <span>•</span>
-                      <span>{blockCount} bloques</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                    <Settings className="w-4 h-4" />
-                  </Button>
-                  <Link href={`/admin/content/lessons/${lesson.id}/edit`}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-primary/50 text-primary hover:bg-primary/10"
-                    >
-                      Editar Lección
-                    </Button>
-                  </Link>
-                  <DeleteLessonButton lessonId={lesson.id} lessonTitle={lesson.title} />
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
+        </div>
+      ) : (
+        // Remounted after a reorder is saved (the key changes) so it always starts from the server's order.
+        <LessonList
+          key={realLessons.map((l) => l.id).join(',')}
+          levelId={levelData.id}
+          lessons={realLessons.map((l) => ({
+            id: l.id,
+            title: l.title,
+            published: !!l.published,
+            skill_type: l.skill_type,
+            blockCount: Array.isArray(l.content) ? l.content.length : 0,
+          }))}
+        />
+      )}
     </div>
   );
 }
